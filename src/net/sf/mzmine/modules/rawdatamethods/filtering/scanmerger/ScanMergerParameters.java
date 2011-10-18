@@ -22,15 +22,15 @@ public class ScanMergerParameters extends SimpleParameterSet {
     /**
      * Raw data file suffix.
      */
-    public static final StringParameter SUFFIX = new StringParameter(
-            "Filename suffix", "Suffix to be appended to raw data file names.",
-            "merged");
+    public static final StringParameter FILE_NAME = new StringParameter(
+            "Merged file name", "Name of the resulting merged raw data file",
+            "merged scans");
 
     /**
-     * Remove original data file.
+     * Remove original data files.
      */
-    public static final BooleanParameter REMOVE_ORIGINAL = new BooleanParameter(
-            "Remove source file after merger",
+    public static final BooleanParameter REMOVE_ORIGINALS = new BooleanParameter(
+            "Remove source files after merger",
             "If checked, original files will be replaced by the merged version",
             true);
 
@@ -38,6 +38,6 @@ public class ScanMergerParameters extends SimpleParameterSet {
      * Create the parameter set.
      */
     public ScanMergerParameters() {
-        super(new Parameter[]{DATA_FILES, SUFFIX, REMOVE_ORIGINAL});
+        super(new Parameter[]{DATA_FILES, FILE_NAME, REMOVE_ORIGINALS});
     }
 }

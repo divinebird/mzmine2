@@ -41,7 +41,7 @@ public class ScanMergerModule implements MZmineProcessingModule {
     private static final String MODULE_NAME = "Scan merger";
 
     // Parameters.
-    private final ScanMergerParameters parameterSet = new ScanMergerParameters();
+    private final ParameterSet parameterSet = new ScanMergerParameters();
 
     @Override
     public ParameterSet getParameterSet() {
@@ -56,10 +56,8 @@ public class ScanMergerModule implements MZmineProcessingModule {
     @Override
     public Task[] runModule(final ParameterSet parameters) {
 
-        // TODO check number of raw data files > 2.
-
         // Create the task.
-        final ScanMergerTask task = new ScanMergerTask(parameters);
+        final Task task = new ScanMergerTask(parameters);
         MZmineCore.getTaskController().addTask(task);
         return new Task[]{task};
     }
