@@ -60,6 +60,10 @@ public class MZmineProjectImpl implements MZmineProject {
 		Runnable swingThreadCode = new Runnable() {
 			public void run() {
 				MainWindow mainWindow = (MainWindow) MZmineCore.getDesktop();
+
+				// Update the name of the project in the window title
+				mainWindow.updateTitle();
+				
 				ProjectTree projectTree = mainWindow.getMainPanel()
 						.getProjectTree();
 				projectTree.setModel(treeModel);
@@ -224,6 +228,8 @@ public class MZmineProjectImpl implements MZmineProject {
 
 	public void setProjectFile(File file) {
 		projectFile = file;
+		// Notify the tree model to update the name of the project
+		treeModel.notifyObjectChanged(this, false);
 	}
 
 	public void removeProjectFile() {
