@@ -23,7 +23,10 @@
 
 package net.sf.mzmine.modules.peaklistmethods.filtering.mergefilter;
 
-import net.sf.mzmine.data.*;
+import net.sf.mzmine.data.ChromatographicPeak;
+import net.sf.mzmine.data.PeakList;
+import net.sf.mzmine.data.PeakListAppliedMethod;
+import net.sf.mzmine.data.PeakListRow;
 import net.sf.mzmine.data.impl.SimpleChromatographicPeak;
 import net.sf.mzmine.data.impl.SimplePeakList;
 import net.sf.mzmine.data.impl.SimplePeakListAppliedMethod;
@@ -175,10 +178,7 @@ public class MergeFilterTask extends AbstractTask {
                     if (secondRow != null) {
 
                         // Compare identifications
-                        final boolean sameID = !requireSameId ||
-                                               compareIdentities(firstRow, secondRow) &&
-                                               compareIdentities(secondRow, firstRow);
-                        //PeakUtils.compareIdentities(firstRow, secondRow);
+                        final boolean sameID = !requireSameId || PeakUtils.compareIdentities(firstRow, secondRow);
 
                         // Compare m/z
                         final boolean sameMZ = mzTolerance.getToleranceRange(firstRow.getAverageMZ())
@@ -239,44 +239,5 @@ public class MergeFilterTask extends AbstractTask {
         }
 
         return newPeakList;
-    }
-
-    /**
-     * Do the peak rows have the same list of identities.
-     *
-     * @param row1 first row to compare.
-     * @param row2 second row to compare.
-     * @return Returns false if row1 has an identity whose name is not found in the names of row2's identities
-     *         (but not vice versa), otherwise returns true.
-     */
-    private static boolean compareIdentities(final PeakListRow row1, final PeakListRow row2) {
-
-        final PeakIdentity[] ids1 = row1.getPeakIdentities();
-        final PeakIdentity[] ids2 = row2.getPeakIdentities();
-        final int idCount1 = ids1.length;
-        final int idCount2 = ids2.length;
-
-        boolean sameIds = true;
-        for (int i = 0;
-             sameIds && i < idCount1;
-             i++) {
-
-            final String name = ids1[i].getName();
-            if (name != null) {
-
-                sameIds = false;
-                for (int j = 0;
-                     !sameIds && j < idCount2;
-                     j++) {
-
-                    if (name.equals(ids2[j].getName())) {
-
-                        sameIds = true;
-                    }
-                }
-            }
-        }
-
-        return sameIds;
     }
 }
