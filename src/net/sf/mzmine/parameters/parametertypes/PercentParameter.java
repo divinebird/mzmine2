@@ -35,18 +35,26 @@ public class PercentParameter implements
 
 	private String name, description;
 	private Double value;
+	private double minValue, maxValue;
 
 	public PercentParameter(String name, String description) {
-		this(name, description, null);
+		this(name, description, null, 0, 1);
 	}
 
 	public PercentParameter(final String name, final String description,
 			final Double defaultValue) {
+		this(name, description, defaultValue, 0, 1);
+	}
+
+	public PercentParameter(final String name, final String description,
+			final Double defaultValue, final double minValue, double maxValue) {
 		this.name = name;
 		this.description = description;
 		this.value = defaultValue;
+		this.minValue = minValue;
+		this.maxValue = maxValue;
 	}
-	
+
 	/**
 	 * @see net.sf.mzmine.data.Parameter#getName()
 	 */
@@ -73,8 +81,6 @@ public class PercentParameter implements
 		Double componentValue = component.getValue();
 		if (componentValue == null)
 			return;
-		if ((componentValue < 0) || (componentValue > 100))
-			throw new IllegalArgumentException("Invalid percentage value");
 		this.value = componentValue;
 	}
 
@@ -92,11 +98,15 @@ public class PercentParameter implements
 
 	@Override
 	public void setValueToComponent(PercentComponent component, Double newValue) {
-		if (newValue == null) return;
+		if (newValue == null)
+			return;
 		component.setValue(newValue);
 	}
 
 	@Override
+	/**
+	 * Returns the percentage value in the range 0..1
+	 */
 	public Double getValue() {
 		return value;
 	}
@@ -120,6 +130,11 @@ public class PercentParameter implements
 	public boolean checkValue(Collection<String> errorMessages) {
 		if (value == null) {
 			errorMessages.add(name + " is not set");
+			return false;
+		}
+		if ((value < minValue) || (value > maxValue)) {
+			errorMessages.add(name + " value must be in the range "
+					+ (minValue * 100) + " - " + (maxValue * 100) + "%");
 			return false;
 		}
 		return true;

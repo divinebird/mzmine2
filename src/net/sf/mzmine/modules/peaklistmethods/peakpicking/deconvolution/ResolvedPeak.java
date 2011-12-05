@@ -62,13 +62,15 @@ public class ResolvedPeak implements ChromatographicPeak {
 
 	// Isotope pattern. Null by default but can be set later by deisotoping
 	// method.
-	private IsotopePattern isotopePattern;
+	private IsotopePattern isotopePattern = null;
 	private int charge = 0;
 
 	/**
 	 * Initializes this peak using data points from a given chromatogram -
 	 * regionStart marks the index of the first data point (inclusive),
-	 * regionEnd marks the index of the last data point (inclusive)
+	 * regionEnd marks the index of the last data point (inclusive). The
+	 * selected region MUST NOT contain any zero-intensity data points,
+	 * otherwise exception is thrown.
 	 */
 	public ResolvedPeak(ChromatographicPeak chromatogram, int regionStart,
 			int regionEnd) {
@@ -93,20 +95,21 @@ public class ResolvedPeak implements ChromatographicPeak {
 		dataPointMZValues = new double[regionEnd - regionStart + 1];
 		dataPointIntensityValues = new double[regionEnd - regionStart + 1];
 
-		// We keep the m/z range specified by the chromatogram, instead of
-		// determining it from the m/z data points. The reason is that in
-		// continuous raw data, each m/z peak has a width. That width is
-		// remembered in chromatogram.getRawDataPointsMZRange(), the width of
-		// detected m/z values may be smaller
-		rawDataPointsMZRange = chromatogram.getRawDataPointsMZRange();
-
 		// Set raw data point ranges, height, rt and representative scan
 		height = Double.MIN_VALUE;
 		for (int i = 0; i < scanNumbers.length; i++) {
 
 			DataPoint dp = chromatogram.getDataPoint(scanNumbers[i]);
-			if (dp == null)
-				continue;
+			if (dp == null) {
+				String error = "Cannot create a resolved peak in a region with missing data points: chromatogram "
+						+ chromatogram
+						+ " scans "
+						+ chromatogramScanNumbers[regionStart]
+						+ "-"
+						+ chromatogramScanNumbers[regionEnd]
+						+ ", missing data point in scan " + scanNumbers[i];
+				throw new IllegalArgumentException(error);
+			}
 
 			dataPointMZValues[i] = dp.getMZ();
 			dataPointIntensityValues[i] = dp.getIntensity();
@@ -115,10 +118,12 @@ public class ResolvedPeak implements ChromatographicPeak {
 				rawDataPointsIntensityRange = new Range(dp.getIntensity());
 				rawDataPointsRTRange = new Range(dataFile.getScan(
 						scanNumbers[i]).getRetentionTime());
+				rawDataPointsMZRange = new Range(dp.getMZ());
 			} else {
 				rawDataPointsRTRange.extendRange(dataFile.getScan(
 						scanNumbers[i]).getRetentionTime());
 				rawDataPointsIntensityRange.extendRange(dp.getIntensity());
+				rawDataPointsMZRange.extendRange(dp.getMZ());
 			}
 
 			if (height < dp.getIntensity()) {
