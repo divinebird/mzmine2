@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 The MZmine 2 Development Team
+ * Copyright 2006-2012 The MZmine 2 Development Team
  * 
  * This file is part of MZmine 2.
  * 
@@ -24,8 +24,7 @@ package net.sf.mzmine.main;
  */
 public class MZmineVersion {
 
-	// The value of MZMINE_VERSION must be all numeric, otherwise it will cause
-	// problems when comparing version values during project opening
-	public static final String MZMINE_VERSION = "2.4";
+	// Version number in the form x.y, or x.y.z
+	public static final String MZMINE_VERSION = "2.5";
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 The MZmine 2 Development Team
+ * Copyright 2006-2012 The MZmine 2 Development Team
  *
  * This file is part of MZmine 2.
  *
@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -32,6 +33,7 @@ import javax.xml.parsers.SAXParserFactory;
 
 import net.sf.mzmine.data.DataPoint;
 import net.sf.mzmine.data.RawDataFile;
+import net.sf.mzmine.data.Scan;
 import net.sf.mzmine.data.impl.SimpleMassList;
 import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.modules.projectmethods.projectload.RawDataFileOpenHandler;
@@ -53,7 +55,7 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 	private Logger logger = Logger.getLogger(this.getClass().getName());
 
 	private StringBuffer charBuffer;
-	private RawDataFileImpl rawDataFileWriter;
+	private RawDataFileImpl newRawDataFile;
 	private int numberOfScans = 0, parsedScans = 0;
 	private int scanNumber;
 	private int msLevel;
@@ -66,10 +68,10 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 	private boolean centroided;
 	private int dataPointsNumber;
 	private int stepNumber;
-	private int storageFileOffset;
+	private long storageFileOffset;
 	private int fragmentCount;
 	private StreamCopy copyMachine;
-	private ArrayList<SimpleMassList> massLists;
+	private ArrayList<SimpleMassList> currentMassLists, allMassLists;
 
 	private boolean canceled = false;
 
@@ -93,18 +95,19 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 		storageFileOffset = 0;
 
 		charBuffer = new StringBuffer();
-		massLists = new ArrayList<SimpleMassList>();
+		currentMassLists = new ArrayList<SimpleMassList>();
+		allMassLists = new ArrayList<SimpleMassList>();
 
 		// Writes the scan file into a temporary file
 		logger.info("Moving scan file : " + scansEntry.getName()
 				+ " to the temporary folder");
 
-		rawDataFileWriter = (RawDataFileImpl) MZmineCore.createNewFile(null);
+		newRawDataFile = (RawDataFileImpl) MZmineCore.createNewFile(null);
 
-		File scanFile = rawDataFileWriter.getScanFile();
+		File tempFile = RawDataFileImpl.createNewDataPointsFile();
 
 		InputStream scanInputStream = zipFile.getInputStream(scansEntry);
-		FileOutputStream fileStream = new FileOutputStream(scanFile);
+		FileOutputStream fileStream = new FileOutputStream(tempFile);
 
 		// Extracts the scan file from the zip project file to the temporary
 		// folder
@@ -112,8 +115,6 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 		stepNumber++;
 		copyMachine.copy(scanInputStream, fileStream, scansEntry.getSize());
 		fileStream.close();
-
-		rawDataFileWriter.openScanFile(scanFile);
 
 		stepNumber++;
 
@@ -123,8 +124,19 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 		SAXParser saxParser = factory.newSAXParser();
 		saxParser.parse(xmlInputStream, this);
 
-		// Adds the raw data file to MZmine
-		RawDataFile rawDataFile = rawDataFileWriter.finishWriting();
+		// Open the data points file
+		newRawDataFile.openDataPointsFile(tempFile);
+
+		// Add all the mass lists after we opened the data points file, because
+		// that is where the mass list data will be stored. This is a hack
+		// because in MZmine 2.3 and 2.4 the mass lists were saved as XML
+		// instead of being part of the data points file.
+		for (SimpleMassList ml : allMassLists) {
+			Scan s = ml.getScan();
+			s.addMassList(ml);
+		}
+
+		RawDataFile rawDataFile = newRawDataFile.finishWriting();
 		return rawDataFile;
 
 	}
@@ -179,7 +191,7 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 			String name = attrs.getValue(RawDataElementName_2_3.NAME
 					.getElementName());
 			SimpleMassList newML = new SimpleMassList(name, null, null);
-			massLists.add(newML);
+			currentMassLists.add(newML);
 		}
 	}
 
@@ -199,7 +211,7 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 			// Adds the scan file and the name to the new raw data file
 			String name = getTextOfElement();
 			logger.info("Loading raw data file: " + name);
-			rawDataFileWriter.setName(name);
+			newRawDataFile.setName(name);
 		}
 
 		if (qName.equals(RawDataElementName_2_3.QUANTITY_SCAN.getElementName())) {
@@ -252,7 +264,8 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 			try {
 				DataPoint dataPoints[] = ScanUtils
 						.decodeDataPointsBase64(encodedDataPoints);
-				SimpleMassList newML = massLists.get(massLists.size() - 1);
+				SimpleMassList newML = currentMassLists.get(currentMassLists
+						.size() - 1);
 				newML.setDataPoints(dataPoints);
 			} catch (IOException e) {
 				throw new SAXException(e);
@@ -262,19 +275,30 @@ public class RawDataFileOpenHandler_2_3 extends DefaultHandler implements
 
 		if (qName.equals(RawDataElementName_2_3.SCAN.getElementName())) {
 
-			StorableScan storableScan = new StorableScan(rawDataFileWriter,
-					storageFileOffset, dataPointsNumber, scanNumber, msLevel,
-					retentionTime, parentScan, precursorMZ, precursorCharge,
-					fragmentScan, centroided);
-
-			for (SimpleMassList newML : massLists) {
-				newML.setScan(storableScan);
-				storableScan.addMassList(newML);
-			}
-			massLists.clear();
-
 			try {
-				rawDataFileWriter.addScan(storableScan);
+				int newStorageID = 1;
+				TreeMap<Integer, Long> dataPointsOffsets = newRawDataFile
+						.getDataPointsOffsets();
+				TreeMap<Integer, Integer> dataPointsLengths = newRawDataFile
+						.getDataPointsLengths();
+				if (!dataPointsOffsets.isEmpty())
+					newStorageID = dataPointsOffsets.lastKey().intValue() + 1;
+
+				StorableScan storableScan = new StorableScan(newRawDataFile,
+						newStorageID, dataPointsNumber, scanNumber, msLevel,
+						retentionTime, parentScan, precursorMZ,
+						precursorCharge, fragmentScan, centroided);
+				newRawDataFile.addScan(storableScan);
+
+				dataPointsOffsets.put(newStorageID, storageFileOffset);
+				dataPointsLengths.put(newStorageID, dataPointsNumber);
+
+				for (SimpleMassList newML : currentMassLists) {
+					newML.setScan(storableScan);
+				}
+				allMassLists.addAll(currentMassLists);
+				currentMassLists.clear();
+
 			} catch (IOException e) {
 				throw new SAXException(e);
 			}

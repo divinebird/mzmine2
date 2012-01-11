@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 The MZmine 2 Development Team
+ * Copyright 2006-2012 The MZmine 2 Development Team
  * 
  * This file is part of MZmine 2.
  * 
@@ -46,7 +46,7 @@ public class TICToolTipGenerator implements XYToolTipGenerator {
 
             final TICDataSet ticDataSet = (TICDataSet) dataSet;
 
-            toolTip = "Scan #" + ticDataSet.getScanNumber(series, item)
+            toolTip = "Scan #" + ticDataSet.getScanNumber(item)
                       + "\nRetention time: " + rtFormat.format(rtValue)
                       + "\nBase peak m/z: " + mzFormat.format(ticDataSet.getZValue(series, item))
                       + "\nIntensity: " + intensityFormat.format(intValue);
