@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 The MZmine 2 Development Team
+ * Copyright 2006-2012 The MZmine 2 Development Team
  * 
  * This file is part of MZmine 2.
  * 
@@ -129,10 +129,6 @@ int main(int argc, char* argv[]) {
         fprintf(stdout, "SCAN NUMBER: %ld\n", curScanNum);
         fprintf(stdout, "SCAN FILTER: %s\n", thermoFilterLine);
     
-        // Cleanup memory
-        SysFreeString(bstrFilter);
-        delete[] thermoFilterLine;
-
         long numDataPoints = -1; // points in both the m/z and intensity arrays
         double retentionTimeInMinutes = -1;
         double minObservedMZ_ = -1;
@@ -232,6 +228,8 @@ int main(int argc, char* argv[]) {
         fwrite(pDataPeaks, 16, dataPoints, stdout);
 
         // Cleanup
+        SysFreeString(bstrFilter);
+        delete[] thermoFilterLine;
         SafeArrayUnaccessData(psa); // Release the data handle
         VariantClear(&varMassList); // Delete all memory associated with the variant
         VariantClear(&varPeakFlags); // and reinitialize to VT_EMPTY
@@ -257,7 +255,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    CoUninitialize();    
+    /*
+     * There used to be a call to CoUninitialize() here, but I removed it because 
+     * it caused exceptions in some cases. The reason is that IXRawfilePtr destructor
+     * is called automatically upon the exit of the function, and we must not call
+     * CoUnitialize() before that.
+     */ 
     
     return 0;
+
 }

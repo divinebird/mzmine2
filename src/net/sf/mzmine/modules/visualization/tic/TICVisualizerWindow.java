@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 The MZmine 2 Development Team
+ * Copyright 2006-2012 The MZmine 2 Development Team
  * 
  * This file is part of MZmine 2.
  * 
@@ -276,7 +276,7 @@ public class TICVisualizerWindow extends JInternalFrame implements
                 }
                 CursorPosition pos = new CursorPosition(selectedRT, mz,
                                                         selectedIT, dataSet.getDataFile(),
-                                                        dataSet.getScanNumber(0, index));
+                                                        dataSet.getScanNumber(index));
                 return pos;
             }
         }

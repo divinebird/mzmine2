@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 The MZmine 2 Development Team
+ * Copyright 2006-2012 The MZmine 2 Development Team
  *
  * This file is part of MZmine 2.
  *
@@ -37,7 +37,10 @@ enum RawDataElementName {
 	RETENTION_TIME("rt"),
 	CENTROIDED ("centroid"),
 	QUANTITY_DATAPOINTS ("num_dp"),
-	MASS_LIST("mass_list");
+	MASS_LIST("mass_list"),
+	STORED_DATAPOINTS("stored_datapoints"),
+	STORED_DATA("stored_data"),
+	STORAGE_ID("storage_id");
 
 	private String elementName;
 

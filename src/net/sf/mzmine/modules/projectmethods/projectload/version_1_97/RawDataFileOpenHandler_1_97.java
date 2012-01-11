@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 The MZmine 2 Development Team
+ * Copyright 2006-2012 The MZmine 2 Development Team
  *
  * This file is part of MZmine 2.
  *
@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -49,7 +50,7 @@ public class RawDataFileOpenHandler_1_97 extends DefaultHandler implements
 	private Logger logger = Logger.getLogger(this.getClass().getName());
 
 	private StringBuffer charBuffer;
-	private RawDataFileImpl rawDataFileWriter;
+	private RawDataFileImpl newRawDataFile;
 	private int numberOfScans, parsedScans;
 	private int scanNumber;
 	private int msLevel;
@@ -62,7 +63,10 @@ public class RawDataFileOpenHandler_1_97 extends DefaultHandler implements
 	private boolean centroided;
 	private int dataPointsNumber;
 	private int stepNumber;
-	private int storageFileOffset;
+	private int storageID;
+	private long storageFileOffset;
+	private TreeMap<Integer, Long> dataPointsOffsets;
+	private TreeMap<Integer, Integer> dataPointsLengths;
 	private int fragmentCount;
 	private StreamCopy copyMachine;
 
@@ -81,20 +85,24 @@ public class RawDataFileOpenHandler_1_97 extends DefaultHandler implements
 	public RawDataFile readRawDataFile(ZipFile zipFile, ZipEntry scansEntry,
 			ZipEntry xmlEntry) throws IOException,
 			ParserConfigurationException, SAXException {
-		
+
 		stepNumber = 0;
 		numberOfScans = 0;
 		parsedScans = 0;
+		storageID = 1;
 		storageFileOffset = 0;
-		
+		dataPointsOffsets = new TreeMap<Integer, Long>();
+		dataPointsLengths = new TreeMap<Integer, Integer>();
+
 		charBuffer = new StringBuffer();
 
 		// Writes the scan file into a temporary file
 		logger.info("Moving scan file : " + scansEntry.getName()
 				+ " to the temporary folder");
 
-		File tempFile = File.createTempFile("mzmine", ".scans");
-		tempFile.deleteOnExit();
+		newRawDataFile = (RawDataFileImpl) MZmineCore.createNewFile(null);
+
+		File tempFile = RawDataFileImpl.createNewDataPointsFile();
 
 		InputStream scanInputStream = zipFile.getInputStream(scansEntry);
 		FileOutputStream fileStream = new FileOutputStream(tempFile);
@@ -106,9 +114,6 @@ public class RawDataFileOpenHandler_1_97 extends DefaultHandler implements
 		copyMachine.copy(scanInputStream, fileStream, scansEntry.getSize());
 		fileStream.close();
 
-		rawDataFileWriter = (RawDataFileImpl) MZmineCore.createNewFile(null);
-		rawDataFileWriter.openScanFile(tempFile);
-
 		stepNumber++;
 
 		// Reads the XML file (raw data description)
@@ -118,7 +123,8 @@ public class RawDataFileOpenHandler_1_97 extends DefaultHandler implements
 		saxParser.parse(xmlInputStream, this);
 
 		// Adds the raw data file to MZmine
-		RawDataFile rawDataFile = rawDataFileWriter.finishWriting();
+		newRawDataFile.openDataPointsFile(tempFile, dataPointsOffsets, dataPointsLengths);
+		RawDataFile rawDataFile = newRawDataFile.finishWriting();
 		return rawDataFile;
 
 	}
@@ -186,7 +192,7 @@ public class RawDataFileOpenHandler_1_97 extends DefaultHandler implements
 			// Adds the scan file and the name to the new raw data file
 			String name = getTextOfElement();
 			logger.info("Loading raw data file: " + name);
-			rawDataFileWriter.setName(name);
+			newRawDataFile.setName(name);
 		}
 
 		if (qName
@@ -238,16 +244,19 @@ public class RawDataFileOpenHandler_1_97 extends DefaultHandler implements
 
 		if (qName.equals(RawDataElementName_1_97.SCAN.getElementName())) {
 
-			StorableScan storableScan = new StorableScan(rawDataFileWriter,
-					storageFileOffset, dataPointsNumber, scanNumber, msLevel,
+			StorableScan storableScan = new StorableScan(newRawDataFile,
+					storageID, dataPointsNumber, scanNumber, msLevel,
 					retentionTime, parentScan, precursorMZ, precursorCharge,
 					fragmentScan, centroided);
 
 			try {
-				rawDataFileWriter.addScan(storableScan);
+				newRawDataFile.addScan(storableScan);
+				dataPointsOffsets.put(storageID, storageFileOffset);
+				dataPointsLengths.put(storageID, dataPointsNumber);
 			} catch (IOException e) {
 				throw new SAXException(e);
 			}
+			storageID++;
 			storageFileOffset += dataPointsNumber * 4 * 2;
 
 		}
