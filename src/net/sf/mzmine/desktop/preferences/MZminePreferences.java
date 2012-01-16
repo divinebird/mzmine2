@@ -21,10 +21,8 @@ package net.sf.mzmine.desktop.preferences;
 
 import java.text.DecimalFormat;
 
-import net.sf.mzmine.desktop.preferences.numberformat.NumberFormatParameter;
-import net.sf.mzmine.desktop.preferences.numberformat.RTFormatParameter;
-import net.sf.mzmine.desktop.preferences.numberformat.RTFormatter;
-import net.sf.mzmine.desktop.preferences.numberformat.RTFormatterType;
+import org.w3c.dom.Element;
+
 import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.parameters.Parameter;
 import net.sf.mzmine.parameters.ParameterSet;
@@ -38,18 +36,15 @@ import net.sf.mzmine.util.dialogs.ExitCode;
 public class MZminePreferences extends SimpleParameterSet {
 
 	public static final NumberFormatParameter mzFormat = new NumberFormatParameter(
-			"m/z value format",
-			"Format of m/z values. Please check the help file for details.",
+			"m/z value format", "Format of m/z values", false,
 			new DecimalFormat("0.000"));
 
-	public static final RTFormatParameter rtFormat = new RTFormatParameter(
-			"Retention time value format",
-			"Format of retention time values. Please check the help file for details.",
-			new RTFormatter(RTFormatterType.NumberInMin, "0.0"));
+	public static final NumberFormatParameter rtFormat = new NumberFormatParameter(
+			"Retention time value format", "Format of retention time values",
+			false, new DecimalFormat("0.0"));
 
 	public static final NumberFormatParameter intensityFormat = new NumberFormatParameter(
-			"Intensity format",
-			"Format of intensity values. Please check the help file for details.",
+			"Intensity format", "Format of intensity values", true,
 			new DecimalFormat("0.0E0"));
 
 	public static final NumOfThreadsParameter numOfThreads = new NumOfThreadsParameter();
@@ -71,26 +66,36 @@ public class MZminePreferences extends SimpleParameterSet {
 
 		if (retVal == ExitCode.OK) {
 
-			// Update system proxy settings
-			if (getParameter(proxySettings).getValue()) {
-				ParameterSet proxyParams = getParameter(proxySettings)
-						.getEmbeddedParameters();
-				String address = proxyParams.getParameter(
-						ProxySettings.proxyAddress).getValue();
-				String port = proxyParams.getParameter(ProxySettings.proxyPort)
-						.getValue();
-				System.setProperty("http.proxyHost", address);
-				System.setProperty("http.proxyPort", port);
-			} else {
-				System.clearProperty("http.proxyHost");
-				System.clearProperty("http.proxyPort");
-			}
+			// Update proxy settings
+			updateSystemProxySettings();
 
 			// Repaint windows to update number formats
 			MZmineCore.getDesktop().getMainFrame().repaint();
 		}
 
 		return retVal;
+	}
+
+	public void loadValuesFromXML(Element xmlElement) {
+		super.loadValuesFromXML(xmlElement);
+		updateSystemProxySettings();
+	}
+
+	private void updateSystemProxySettings() {
+		// Update system proxy settings
+		if (getParameter(proxySettings).getValue()) {
+			ParameterSet proxyParams = getParameter(proxySettings)
+					.getEmbeddedParameters();
+			String address = proxyParams.getParameter(
+					ProxySettings.proxyAddress).getValue();
+			String port = proxyParams.getParameter(ProxySettings.proxyPort)
+					.getValue();
+			System.setProperty("http.proxyHost", address);
+			System.setProperty("http.proxyPort", port);
+		} else {
+			System.clearProperty("http.proxyHost");
+			System.clearProperty("http.proxyPort");
+		}
 	}
 
 }
