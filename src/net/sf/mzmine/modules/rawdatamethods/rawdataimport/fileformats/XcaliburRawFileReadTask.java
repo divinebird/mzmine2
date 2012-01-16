@@ -39,7 +39,7 @@ import net.sf.mzmine.util.ExceptionUtils;
 import net.sf.mzmine.util.ScanUtils;
 import net.sf.mzmine.util.TextUtils;
 
-import com.mindprod.ledatastream.LEDataInputStream;
+import com.google.common.io.LittleEndianDataInputStream;
 
 /**
  * This module binds to the XRawfile2.dll library of Xcalibur and reads directly
@@ -102,11 +102,11 @@ public class XcaliburRawFileReadTask extends AbstractTask {
 
 		// Check the OS we are running
 		String osName = System.getProperty("os.name").toUpperCase();
-		
+
 		String rawDumpPath = System.getProperty("user.dir") + File.separator
 				+ "lib" + File.separator + "RAWdump.exe";
 		String cmdLine[];
-		
+
 		if (osName.toUpperCase().contains("WINDOWS")) {
 			cmdLine = new String[] { rawDumpPath, file.getPath() };
 		} else {
@@ -116,7 +116,7 @@ public class XcaliburRawFileReadTask extends AbstractTask {
 		Process dumper = null;
 
 		try {
-			
+
 			// Create a separate process and execute RAWdump.exe
 			dumper = Runtime.getRuntime().exec(cmdLine);
 
@@ -223,11 +223,9 @@ public class XcaliburRawFileReadTask extends AbstractTask {
 			}
 
 			if (line.startsWith("RETENTION TIME: ")) {
-				// Retention time in the RAW file is reported in minutes, but in
-				// MZmine we use seconds representation, so we need to multiply
-				// by 60
+				// Retention time in the RAW file is reported in minutes.
 				retentionTime = Double.parseDouble(line
-						.substring("RETENTION TIME: ".length())) * 60;
+						.substring("RETENTION TIME: ".length()));
 			}
 
 			if (line.startsWith("PRECURSOR: ")) {
@@ -249,7 +247,7 @@ public class XcaliburRawFileReadTask extends AbstractTask {
 				// Because Intel CPU is using little endian natively, we
 				// need to use LEDataInputStream instead of normal Java
 				// DataInputStream, which is big-endian.
-				LEDataInputStream dis = new LEDataInputStream(dumpStream);
+				LittleEndianDataInputStream dis = new LittleEndianDataInputStream(dumpStream);
 				for (int i = 0; i < numOfDataPoints; i++) {
 					double mz = dis.readDouble();
 					double intensity = dis.readDouble();
