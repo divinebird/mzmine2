@@ -19,6 +19,9 @@
 
 package net.sf.mzmine.data;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import net.sf.mzmine.util.Range;
 
 /**
@@ -30,8 +33,9 @@ public interface Scan {
      * 
      * @return RawDataFile containing this Scan
      */
+    @Nonnull
     public RawDataFile getDataFile();
-    
+
     /**
      * 
      * @return Scan number
@@ -55,6 +59,7 @@ public interface Scan {
      * 
      * @return m/z range of this Scan
      */
+    @Nonnull
     public Range getMZRange();
 
     /**
@@ -63,6 +68,7 @@ public interface Scan {
      * 
      * @return Base peak
      */
+    @Nullable
     public DataPoint getBasePeak();
 
     /**
@@ -117,6 +123,7 @@ public interface Scan {
      * 
      * @return Data points (m/z and intensity pairs) of this scan
      */
+    @Nonnull
     public DataPoint[] getDataPoints();
 
     /**
@@ -128,7 +135,8 @@ public interface Scan {
      * 
      * @return Data points (m/z and intensity pairs) of this MzDataTable
      */
-    public DataPoint[] getDataPointsByMass(Range mzRange);
+    @Nonnull
+    public DataPoint[] getDataPointsByMass(@Nonnull Range mzRange);
 
     /**
      * Returns data points over given intensity, sorted in m/z order.
@@ -139,14 +147,17 @@ public interface Scan {
      * 
      * @return Data points (m/z and intensity pairs) of this MzDataTable
      */
+    @Nonnull
     public DataPoint[] getDataPointsOverIntensity(double intensity);
-    
-	public MassList[] getMassLists();
-	
-	public MassList getMassList(String name);
-	
-	public void addMassList(MassList massList);
-	
-	public void removeMassList(MassList massList);
-	
+
+    @Nonnull
+    public MassList[] getMassLists();
+
+    @Nullable
+    public MassList getMassList(@Nonnull String name);
+
+    public void addMassList(@Nonnull MassList massList);
+
+    public void removeMassList(@Nonnull MassList massList);
+
 }
