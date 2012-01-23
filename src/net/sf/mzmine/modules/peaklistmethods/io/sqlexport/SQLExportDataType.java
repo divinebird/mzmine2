@@ -17,30 +17,32 @@
  * Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-package net.sf.mzmine.data;
+package net.sf.mzmine.modules.peaklistmethods.io.sqlexport;
 
-import java.io.IOException;
+public enum SQLExportDataType {
 
-/**
- * This interface represents a raw data file which is being modified. Scans can
- * be added to the file by calling the addScan() method. Final RawDataFile
- * instance is obtained by calling finishWriting() method.
- */
-public interface RawDataFileWriter {
+    CONSTANT("Constant value", true), //
+    MZ("m/z", false), //
+    RT("Retention time", false), //
+    COMMENT("Comment", false), //
+    IDENTITY("Identity", false), //
+    MSMS("MS/MS pattern (BLOB)", false), //
+    ISOTOPEPATTERN("Isotope pattern (BLOB)", false);
 
-    /**
-     * Adds a new scan to the file.
-     * 
-     * @param newScan
-     *            Scan to add
-     */
-    public void addScan(Scan newScan) throws IOException;
+    private final String name;
+    private final boolean hasAdditionalValue;
 
-    /**
-     * Finishes writing of the file
-     * 
-     * @return newly written file as RawDataFile
-     */
-    public RawDataFile finishWriting() throws IOException;
+    SQLExportDataType(String name, boolean hasAdditionalValue) {
+	this.name = name;
+	this.hasAdditionalValue = hasAdditionalValue;
+    }
+
+    public String toString() {
+	return this.name;
+    }
+
+    public boolean hasAdditionalValue() {
+	return hasAdditionalValue;
+    }
 
 }

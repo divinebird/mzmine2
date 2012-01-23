@@ -19,81 +19,93 @@
 
 package net.sf.mzmine.data;
 
+import javax.annotation.Nonnull;
+
 import net.sf.mzmine.util.Range;
 
 public interface RawDataFile {
 
-	/**
-	 * Returns the name of this data file (can be a descriptive name, not
-	 * necessarily the original file name)
-	 */
-	public String getName();
+    /**
+     * Returns the name of this data file (can be a descriptive name, not
+     * necessarily the original file name)
+     */
+    @Nonnull
+    public String getName();
 
-	/**
-	 * Change the name of this data file
-	 */
-	public void setName(String name);
+    /**
+     * Change the name of this data file
+     */
+    public void setName(@Nonnull String name);
 
-	public int getNumOfScans();
+    public int getNumOfScans();
 
-	public int getNumOfScans(int msLevel);
+    public int getNumOfScans(int msLevel);
 
-	/**
-	 * Returns sorted array of all MS levels in this file
-	 */
-	public int[] getMSLevels();
+    /**
+     * Returns sorted array of all MS levels in this file
+     */
+    @Nonnull
+    public int[] getMSLevels();
 
-	/**
-	 * Returns sorted array of all scan numbers in this file
-	 * 
-	 * @return Sorted array of scan numbers, never returns null
-	 */
-	public int[] getScanNumbers();
+    /**
+     * Returns sorted array of all scan numbers in this file
+     * 
+     * @return Sorted array of scan numbers, never returns null
+     */
+    @Nonnull
+    public int[] getScanNumbers();
 
-	/**
-	 * Returns sorted array of all scan numbers in given MS level
-	 * 
-	 * @param msLevel
-	 *            MS level
-	 * @return Sorted array of scan numbers, never returns null
-	 */
-	public int[] getScanNumbers(int msLevel);
+    /**
+     * Returns sorted array of all scan numbers in given MS level
+     * 
+     * @param msLevel
+     *            MS level
+     * @return Sorted array of scan numbers, never returns null
+     */
+    @Nonnull
+    public int[] getScanNumbers(int msLevel);
 
-	/**
-	 * Returns sorted array of all scan numbers in given MS level and retention
-	 * time range
-	 * 
-	 * @param msLevel
-	 *            MS level
-	 * @param rtRange
-	 *            Retention time range
-	 * @return Sorted array of scan numbers, never returns null
-	 */
-	public int[] getScanNumbers(int msLevel, Range rtRange);
+    /**
+     * Returns sorted array of all scan numbers in given MS level and retention
+     * time range
+     * 
+     * @param msLevel
+     *            MS level
+     * @param rtRange
+     *            Retention time range
+     * @return Sorted array of scan numbers, never returns null
+     */
+    @Nonnull
+    public int[] getScanNumbers(int msLevel, @Nonnull Range rtRange);
 
-	/**
-	 * 
-	 * @param scan
-	 *            Desired scan number
-	 * @return Desired scan
-	 */
-	public Scan getScan(int scan);
+    /**
+     * 
+     * @param scan
+     *            Desired scan number
+     * @return Desired scan
+     */
+    @Nonnull
+    public Scan getScan(int scan);
 
-	public Range getDataMZRange();
+    @Nonnull
+    public Range getDataMZRange();
 
-	public Range getDataRTRange();
+    @Nonnull
+    public Range getDataRTRange();
 
-	public Range getDataMZRange(int msLevel);
+    @Nonnull
+    public Range getDataMZRange(int msLevel);
 
-	public Range getDataRTRange(int msLevel);
+    @Nonnull
+    public Range getDataRTRange(int msLevel);
 
-	public double getDataMaxBasePeakIntensity(int msLevel);
+    public double getDataMaxBasePeakIntensity(int msLevel);
 
-	public double getDataMaxTotalIonCurrent(int msLevel);
+    public double getDataMaxTotalIonCurrent(int msLevel);
 
-	/**
-	 * Close the file in case it is removed from the project
-	 */
-	public void close();
+    /**
+     * Close the file in case it is removed from the project
+     */
+    public void close();
 
 }
