@@ -68,6 +68,7 @@ import net.sf.mzmine.modules.rawdatamethods.peakpicking.manual.ManualPeakPickerM
 import net.sf.mzmine.modules.rawdatamethods.peakpicking.massdetection.MassDetectionModule;
 import net.sf.mzmine.modules.rawdatamethods.peakpicking.msms.MsMsPeakPickerModule;
 import net.sf.mzmine.modules.rawdatamethods.rawdataimport.RawDataImportModule;
+import net.sf.mzmine.modules.rawdatamethods.targetedpeakdetection.TargetedPeakDetectionModule;
 import net.sf.mzmine.modules.visualization.histogram.HistogramVisualizerModule;
 import net.sf.mzmine.modules.visualization.infovisualizer.InfoVisualizerModule;
 import net.sf.mzmine.modules.visualization.intensityplot.IntensityPlotModule;
@@ -133,6 +134,7 @@ public class MZmineModulesList {
 	    DeconvolutionModule.class,
 	    ShapeModelerModule.class,
 	    PeakExtenderModule.class,
+            TargetedPeakDetectionModule.class,
 
 	    // Peak list filtering
 	    DuplicateFilterModule.class,
