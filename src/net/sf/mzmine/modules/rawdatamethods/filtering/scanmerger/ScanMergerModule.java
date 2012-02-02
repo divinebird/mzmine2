@@ -23,11 +23,14 @@
 
 package net.sf.mzmine.modules.rawdatamethods.filtering.scanmerger;
 
-import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.modules.MZmineModuleCategory;
 import net.sf.mzmine.modules.MZmineProcessingModule;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.taskcontrol.Task;
+import net.sf.mzmine.util.ExitCode;
+
+import javax.annotation.Nonnull;
+import java.util.Collection;
 
 /**
  * Scan merger module.
@@ -39,31 +42,41 @@ public class ScanMergerModule implements MZmineProcessingModule {
 
     // Module name.
     private static final String MODULE_NAME = "Scan merger";
+    private static final String MODULE_DESCRIPTION = "Merges merges multiple raw data files";
 
-    // Parameters.
-    private final ParameterSet parameterSet = new ScanMergerParameters();
-
+    @Nonnull
     @Override
-    public ParameterSet getParameterSet() {
-        return parameterSet;
+    public Class<? extends ParameterSet> getParameterSetClass() {
+
+        return ScanMergerParameters.class;
     }
 
+    @Nonnull
     @Override
-    public String toString() {
+    public String getName() {
+
         return MODULE_NAME;
     }
 
+    @Nonnull
     @Override
-    public Task[] runModule(final ParameterSet parameters) {
+    public String getDescription() {
 
-        // Create the task.
-        final Task task = new ScanMergerTask(parameters);
-        MZmineCore.getTaskController().addTask(task);
-        return new Task[]{task};
+        return MODULE_DESCRIPTION;
     }
 
+    @Nonnull
     @Override
     public MZmineModuleCategory getModuleCategory() {
+
         return MZmineModuleCategory.RAWDATAFILTERING;
+    }
+
+    @Nonnull
+    @Override
+    public ExitCode runModule(@Nonnull final ParameterSet parameters, @Nonnull final Collection<Task> tasks) {
+
+        tasks.add(new ScanMergerTask(parameters));
+        return ExitCode.OK;
     }
 }

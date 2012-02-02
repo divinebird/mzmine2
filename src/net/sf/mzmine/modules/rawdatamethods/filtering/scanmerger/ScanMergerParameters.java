@@ -1,7 +1,7 @@
 package net.sf.mzmine.modules.rawdatamethods.filtering.scanmerger;
 
 import net.sf.mzmine.parameters.Parameter;
-import net.sf.mzmine.parameters.SimpleParameterSet;
+import net.sf.mzmine.parameters.impl.SimpleParameterSet;
 import net.sf.mzmine.parameters.parametertypes.BooleanParameter;
 import net.sf.mzmine.parameters.parametertypes.RawDataFilesParameter;
 import net.sf.mzmine.parameters.parametertypes.StringParameter;
