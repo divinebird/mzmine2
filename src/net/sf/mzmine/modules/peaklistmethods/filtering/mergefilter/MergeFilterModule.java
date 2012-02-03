@@ -24,53 +24,55 @@
 package net.sf.mzmine.modules.peaklistmethods.filtering.mergefilter;
 
 import net.sf.mzmine.data.PeakList;
-import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.modules.MZmineModuleCategory;
 import net.sf.mzmine.modules.MZmineProcessingModule;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.taskcontrol.Task;
+import net.sf.mzmine.util.ExitCode;
+
+import javax.annotation.Nonnull;
+import java.util.Collection;
 
 /**
  * Merge peaks module.
  */
 public class MergeFilterModule implements MZmineProcessingModule {
 
-    // Module title.
-    private static final String TITLE = "Merge peak filter";
+    private static final String MODULE_NAME = "Merge peak filter";
+    private static final String MODULE_DESCRIPTION =
+            "This method merges similar peaks (peaks with similar retention times and m/z) in a peak list.";
 
-    // Parameters.
-    private final ParameterSet parameters = new MergeFilterParameters();
-
-    public String toString() {
-        return TITLE;
+    @Override
+    public String getName() {
+        return MODULE_NAME;
     }
 
     @Override
-    public ParameterSet getParameterSet() {
-        return parameters;
+    public String getDescription() {
+        return MODULE_DESCRIPTION;
     }
 
-    @Override
-    public Task[] runModule(final ParameterSet params) {
-
-        // Get peak lists to process.
-        final PeakList[] peakLists = params.getParameter(MergeFilterParameters.PEAK_LISTS).getValue();
-
-        // Create a new task for each peak list.
-        final Task[] tasks = new MergeFilterTask[peakLists.length];
-        int i = 0;
-        for (final PeakList list : peakLists) {
-            tasks[i++] = new MergeFilterTask(list, params);
-        }
-
-        // Queue and return the tasks.
-        MZmineCore.getTaskController().addTasks(tasks);
-        return tasks;
-    }
 
     @Override
     public MZmineModuleCategory getModuleCategory() {
-
         return MZmineModuleCategory.PEAKLISTFILTERING;
+    }
+
+    @Override
+    public Class<? extends ParameterSet> getParameterSetClass() {
+        return MergeFilterParameters.class;
+    }
+
+    @Override
+    @Nonnull
+    public ExitCode runModule(@Nonnull final ParameterSet parameters,
+                              @Nonnull final Collection<Task> tasks) {
+
+        for (final PeakList peakList : parameters.getParameter(MergeFilterParameters.PEAK_LISTS).getValue()) {
+
+            tasks.add(new MergeFilterTask(peakList, parameters));
+        }
+
+        return ExitCode.OK;
     }
 }

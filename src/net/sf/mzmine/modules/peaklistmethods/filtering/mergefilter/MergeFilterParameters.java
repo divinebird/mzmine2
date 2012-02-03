@@ -24,7 +24,7 @@
 package net.sf.mzmine.modules.peaklistmethods.filtering.mergefilter;
 
 import net.sf.mzmine.parameters.Parameter;
-import net.sf.mzmine.parameters.SimpleParameterSet;
+import net.sf.mzmine.parameters.impl.SimpleParameterSet;
 import net.sf.mzmine.parameters.parametertypes.*;
 
 public class MergeFilterParameters extends SimpleParameterSet {
