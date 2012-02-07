@@ -24,9 +24,11 @@ public enum SQLExportDataType {
     CONSTANT("Constant value", true), //
     MZ("m/z", false), //
     RT("Retention time", false), //
+    HEIGHT("Peak height", false), //
+    AREA("Peak area", false), //
     COMMENT("Comment", false), //
     IDENTITY("Identity", false), //
-    MSMS("MS/MS pattern (BLOB)", false), //
+    MSMS("MS/MS pattern (BLOB)", true), //
     ISOTOPEPATTERN("Isotope pattern (BLOB)", false);
 
     private final String name;
@@ -37,7 +39,7 @@ public enum SQLExportDataType {
 	this.hasAdditionalValue = hasAdditionalValue;
     }
 
-    public String getName() {
+    public String toString() {
 	return this.name;
     }
 
