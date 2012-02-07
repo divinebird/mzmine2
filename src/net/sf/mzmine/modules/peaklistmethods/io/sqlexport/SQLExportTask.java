@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
 
 import net.sf.mzmine.data.DataPoint;
 import net.sf.mzmine.data.IsotopePattern;
@@ -150,6 +151,12 @@ class SQLExportTask extends AbstractTask {
 	    case RT:
 		statement.setDouble(i + 1, row.getAverageRT());
 		break;
+	    case HEIGHT:
+		statement.setDouble(i + 1, row.getAverageHeight());
+		break;
+	    case AREA:
+		statement.setDouble(i + 1, row.getAverageArea());
+		break;
 	    case COMMENT:
 		statement.setString(i + 1, row.getComment());
 		break;
@@ -157,31 +164,42 @@ class SQLExportTask extends AbstractTask {
 		PeakIdentity id = row.getPreferredPeakIdentity();
 		if (id != null) {
 		    statement.setString(i + 1, id.getName());
+		} else {
+		    statement.setNull(i + 1, Types.VARCHAR);
 		}
 		break;
 	    case ISOTOPEPATTERN:
 		IsotopePattern isotopes = row.getBestIsotopePattern();
-		if (isotopes != null) {
-		    DataPoint dataPoints[] = isotopes.getDataPoints();
-		    byte bytes[] = ScanUtils
-			    .encodeDataPointsToBytes(dataPoints);
-		    ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		    statement.setBlob(i + 1, is);
+		if (isotopes == null) {
+		    statement.setNull(i + 1, Types.BLOB);
+		    break;
 		}
+		DataPoint dataPoints[] = isotopes.getDataPoints();
+		byte bytes[] = ScanUtils.encodeDataPointsToBytes(dataPoints);
+		ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+		statement.setBlob(i + 1, is);
 		break;
 	    case MSMS:
 		int msmsScanNum = row.getBestPeak()
 			.getMostIntenseFragmentScanNumber();
+		// Check if there is any MS/MS scan
+		if (msmsScanNum <= 0) {
+		    statement.setNull(i + 1, Types.BLOB);
+		    break;
+		}
 		RawDataFile dataFile = row.getBestPeak().getDataFile();
 		Scan msmsScan = dataFile.getScan(msmsScanNum);
 		MassList msmsMassList = msmsScan.getMassList(dataValue);
-		if (msmsMassList != null) {
-		    DataPoint dataPoints[] = msmsMassList.getDataPoints();
-		    byte bytes[] = ScanUtils
-			    .encodeDataPointsToBytes(dataPoints);
-		    ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-		    statement.setBlob(i + 1, is);
+		// Check if there is a masslist for the scan
+		if (msmsMassList == null) {
+		    statement.setNull(i + 1, Types.BLOB);
+		    break;
 		}
+		dataPoints = msmsMassList.getDataPoints();
+		bytes = ScanUtils.encodeDataPointsToBytes(dataPoints);
+		is = new ByteArrayInputStream(bytes);
+		statement.setBlob(i + 1, is);
+
 		break;
 	    }
 	}
