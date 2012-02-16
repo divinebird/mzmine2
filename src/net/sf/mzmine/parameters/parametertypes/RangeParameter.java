@@ -29,11 +29,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-/**
- * Simple Parameter implementation
- * 
- * 
- */
 public class RangeParameter implements UserParameter<Range, RangeComponent> {
 
     private String name, description;
@@ -83,7 +78,7 @@ public class RangeParameter implements UserParameter<Range, RangeComponent> {
     }
 
     @Override
-    public RangeParameter clone() {
+    public RangeParameter cloneParameter() {
 	RangeParameter copy = new RangeParameter(name, description, format);
 	copy.setValue(this.getValue());
 	return copy;

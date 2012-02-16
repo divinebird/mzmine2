@@ -19,21 +19,27 @@
 
 package net.sf.mzmine.parameters.parametertypes;
 
-/**
- * 
- */
-public class MSLevelParameter extends ComboParameter<Integer> {
+public class MZRangeParameter extends RangeParameter {
 
-	public MSLevelParameter() {
-		super("MS level",
-				"MS level 1 means full scans, MS level 2 means MS/MS, etc.",
-				new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 1);
-	}
+    public MZRangeParameter() {
+	super("m/z", "m/z range", null, null);
+    }
 
-	@Override
-	public MSLevelParameter cloneParameter() {
-		MSLevelParameter copy = new MSLevelParameter();
-		copy.setValue(getValue());
-		return copy;
-	}
+    public MZRangeParameter(String name, String description) {
+	super(name, description, null, null);
+    }
+
+    @Override
+    public MZRangeComponent createEditingComponent() {
+	return new MZRangeComponent();
+    }
+
+    @Override
+    public MZRangeParameter cloneParameter() {
+	MZRangeParameter copy = new MZRangeParameter(getName(),
+		getDescription());
+	copy.setValue(this.getValue());
+	return copy;
+    }
+
 }

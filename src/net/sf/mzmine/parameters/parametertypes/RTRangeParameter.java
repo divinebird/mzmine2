@@ -19,21 +19,27 @@
 
 package net.sf.mzmine.parameters.parametertypes;
 
-/**
- * 
- */
-public class MSLevelParameter extends ComboParameter<Integer> {
+public class RTRangeParameter extends RangeParameter {
 
-	public MSLevelParameter() {
-		super("MS level",
-				"MS level 1 means full scans, MS level 2 means MS/MS, etc.",
-				new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 1);
-	}
+    public RTRangeParameter() {
+	super("Retention time", "Retention time range in minutes", null, null);
+    }
 
-	@Override
-	public MSLevelParameter cloneParameter() {
-		MSLevelParameter copy = new MSLevelParameter();
-		copy.setValue(getValue());
-		return copy;
-	}
+    public RTRangeParameter(String name, String description) {
+	super(name, description, null, null);
+    }
+
+    @Override
+    public RTRangeComponent createEditingComponent() {
+	return new RTRangeComponent();
+    }
+
+    @Override
+    public RTRangeParameter cloneParameter() {
+	RTRangeParameter copy = new RTRangeParameter(getName(),
+		getDescription());
+	copy.setValue(this.getValue());
+	return copy;
+    }
+
 }

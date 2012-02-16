@@ -21,7 +21,6 @@ package net.sf.mzmine.parameters.impl;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -121,12 +120,12 @@ public class SimpleParameterSet implements ParameterSet {
     /**
      * Make a deep copy
      */
-    public ParameterSet clone() {
+    public ParameterSet cloneParameter() {
 
 	// Make a deep copy of the parameters
 	Parameter newParameters[] = new Parameter[parameters.length];
 	for (int i = 0; i < parameters.length; i++) {
-	    newParameters[i] = parameters[i].clone();
+	    newParameters[i] = parameters[i].cloneParameter();
 	}
 
 	try {
@@ -156,13 +155,9 @@ public class SimpleParameterSet implements ParameterSet {
 
     @Override
     public ExitCode showSetupDialog() {
-	return showSetupDialog(null);
-    }
-
-    protected ExitCode showSetupDialog(Map<UserParameter, Object> autoValues) {
 	if ((parameters == null) || (parameters.length == 0))
 	    return ExitCode.OK;
-	ParameterSetupDialog dialog = new ParameterSetupDialog(this, autoValues);
+	ParameterSetupDialog dialog = new ParameterSetupDialog(this);
 	dialog.setVisible(true);
 	return dialog.getExitCode();
     }
