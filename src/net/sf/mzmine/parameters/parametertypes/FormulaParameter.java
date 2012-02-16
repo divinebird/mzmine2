@@ -19,21 +19,28 @@
 
 package net.sf.mzmine.parameters.parametertypes;
 
-/**
- * 
- */
-public class MSLevelParameter extends ComboParameter<Integer> {
+import java.util.Collection;
 
-	public MSLevelParameter() {
-		super("MS level",
-				"MS level 1 means full scans, MS level 2 means MS/MS, etc.",
-				new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 1);
+public class FormulaParameter extends StringParameter {
+
+    private static final String formulaPattern = "^([A-Z][a-z]?[0-9]*)+$";
+
+    public FormulaParameter() {
+	super("Formula",
+		"The chemical formula in its neutral form, e.g. C6H12O6", null);
+    }
+
+    @Override
+    public boolean checkValue(Collection<String> errorMessages) {
+	boolean superCheck = super.checkValue(errorMessages);
+
+	String value = getValue();
+	if ((value != null) && (!value.matches(formulaPattern))) {
+	    errorMessages.add(value + " is not a valid chemical formula");
+	    return false;
 	}
 
-	@Override
-	public MSLevelParameter cloneParameter() {
-		MSLevelParameter copy = new MSLevelParameter();
-		copy.setValue(getValue());
-		return copy;
-	}
+	return superCheck;
+    }
+
 }
