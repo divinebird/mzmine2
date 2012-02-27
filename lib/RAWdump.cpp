@@ -162,37 +162,32 @@ int main(int argc, char* argv[]) {
         if (strstr(thermoFilterLine, "ms ") == NULL) {
 
                 // precursorMz
-                VARIANT varValue;
-                VariantInit(&varValue);
-                rawFile->GetTrailerExtraValueForScanNum(curScanNum, "Monoisotopic M/Z:" , &varValue);
+                VARIANT varPrecMz;
+                VariantInit(&varPrecMz);
+                rawFile->GetTrailerExtraValueForScanNum(curScanNum, "Monoisotopic M/Z:" , &varPrecMz);
 
-                if( varValue.vt == VT_R4 ){ 
-                    precursorMz = (double) varValue.fltVal;
-                }else if( varValue.vt == VT_R8 ) {
-                    precursorMz = varValue.dblVal;
-                }else if ( varValue.vt != VT_ERROR ) {
-                    precursorMz = 0;
+                if( varPrecMz.vt == VT_R4 ){ 
+                    precursorMz = (double) varPrecMz.fltVal;
+                } else if( varPrecMz.vt == VT_R8 ) {
+                    precursorMz = varPrecMz.dblVal;
                 }
-                VariantClear(&varValue);
                 
                 // precursorCharge
-                VariantInit(&varValue);
-                rawFile->GetTrailerExtraValueForScanNum(curScanNum, "Charge State:" , &varValue);
+				VARIANT varPrecChrg;
+                VariantInit(&varPrecChrg);
+                rawFile->GetTrailerExtraValueForScanNum(curScanNum, "Charge State:" , &varPrecChrg);
 
-                if( varValue.vt == VT_I2 ) 
-                    precursorCharge = varValue.iVal;
-
-                VariantClear(&varValue);
+                if( varPrecChrg.vt == VT_I2 ) 
+                    precursorCharge = varPrecChrg.iVal;
+                
                 fprintf(stdout, "PRECURSOR: %f %d\n", precursorMz, precursorCharge);
         
         }
 
         VARIANT varMassList;
-        // initiallize variant to VT_EMPTY
         VariantInit(&varMassList);
 
         VARIANT varPeakFlags; // unused
-        // initiallize variant to VT_EMPTY
         VariantInit(&varPeakFlags);
 
         // set up the parameters to read the scan
@@ -228,23 +223,8 @@ int main(int argc, char* argv[]) {
         // Dump the binary data
         fwrite(pDataPeaks, 16, dataPoints, stdout);
 
-        // Cleanup
-        delete[] thermoFilterLine;
-        SafeArrayUnaccessData(psa); // Release the data handle
-        VariantClear(&varMassList); // Delete all memory associated with the variant
-        VariantClear(&varPeakFlags); // and reinitialize to VT_EMPTY
-
-        if( varMassList.vt != VT_EMPTY ) {
-            SAFEARRAY FAR* psa = varMassList.parray;
-            varMassList.parray = NULL;
-            SafeArrayDestroy( psa ); // Delete the SafeArray
-        }
-
-        if(varPeakFlags.vt != VT_EMPTY ) {
-            SAFEARRAY FAR* psa = varPeakFlags.parray;
-            varPeakFlags.parray = NULL;
-            SafeArrayDestroy( psa ); // Delete the SafeArray
-        }
+        // Release the data handle
+        SafeArrayUnaccessData(psa);
         
     }
 
