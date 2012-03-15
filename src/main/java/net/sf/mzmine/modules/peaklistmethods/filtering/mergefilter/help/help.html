@@ -1,0 +1,39 @@
+<html>
+<head>
+    <title>Peak list filtering - Merge filter</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="/net/sf/mzmine/desktop/impl/helpsystem/HelpStyles.css">
+</head>
+
+<body>
+
+<h1>Merge filter</h1>
+
+<h2>Description</h2>
+
+<p>
+    Replaces similar peak-list rows with a single peak-list row. Similar peak-list rows are determined by
+    comparing their peaks' RT and m/z values. If they differ by less than the amounts specified by the <em>RT
+    tolerance</em> and <em>m/z tolerance</em> parameters then they can be merged.
+</p>
+
+<h4>Method parameters</h4>
+<dl>
+    <dt>Name suffix</dt>
+    <dd>This is the suffix used to identify the new peak list in Peak list frame of the application desktop.</dd>
+
+    <dt>m/z tolerance</dt>
+    <dd>Maximum m/z difference between peaks to be merged.</dd>
+
+    <dt>RT tolerance</dt>
+    <dd>Maximum retention time difference between peaks to be merged.</dd>
+
+    <dt>Require same identification</dt>
+    <dd>If the checkbox is selected then peaks must have the same identification for them to be merged.</dd>
+
+    <dt>Remove source peak list after merging</dt>
+    <dd>It the checkbox is selected the source peak list will be remove and the filtered version remains.</dd>
+</dl>
+
+</body>
+</html>
