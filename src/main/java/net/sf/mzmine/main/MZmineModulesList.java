@@ -63,6 +63,7 @@ import net.sf.mzmine.modules.projectmethods.projectsave.ProjectSaveModule;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrectionModule;
 import net.sf.mzmine.modules.rawdatamethods.filtering.datasetfilters.DataSetFiltersModule;
 import net.sf.mzmine.modules.rawdatamethods.filtering.scanfilters.ScanFiltersModule;
+import net.sf.mzmine.modules.rawdatamethods.filtering.scanmerger.ScanMergerModule;
 import net.sf.mzmine.modules.rawdatamethods.peakpicking.manual.ManualPeakPickerModule;
 import net.sf.mzmine.modules.rawdatamethods.peakpicking.massdetection.MassDetectionModule;
 import net.sf.mzmine.modules.rawdatamethods.peakpicking.msms.MsMsPeakPickerModule;
@@ -106,6 +107,7 @@ public class MZmineModulesList {
 	    ManualPeakPickerModule.class,
 	    MsMsPeakPickerModule.class,
 	    ScanFiltersModule.class,
+        ScanMergerModule.class,
 	    DataSetFiltersModule.class,
 	    BaselineCorrectionModule.class,
 
