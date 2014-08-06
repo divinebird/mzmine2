@@ -16,6 +16,7 @@ import net.sf.mzmine.util.CollectionUtils;
 import net.sf.mzmine.util.MathUtils;
 import net.sf.mzmine.util.Range;
 import net.sf.mzmine.util.ScanUtils;
+import net.sf.mzmine.util.PeakUtils;
 
 public class ExtendedPeak implements Feature {
 
@@ -242,5 +243,13 @@ public class ExtendedPeak implements Feature {
 	public void setCharge(int charge) {
 		this.charge = charge;
 	}
+
+  /**
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+      return PeakUtils.peakToString(this);
+  }
 
 }
