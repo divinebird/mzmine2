@@ -408,7 +408,12 @@ public class StorableScan implements Scan {
 	@Override
 	public MassList getMassList(@Nonnull String name) {
 		for (MassList ml : massLists) {
-			if (ml.getName().equals(name))
+			// GLG HACK: finding the correct mass list in case a unique id has been appended to the list name
+			// See "MassDetectionTask.java" (hack: "Append unique id to the mass list name")
+			//
+			//if (ml.getName().equals(name))
+			if (ml.getName().equals(name) 
+					|| ml.getName().startsWith(name + MZmineCore.getUnpastableSep()))
 				return ml;
 		}
 		return null;

@@ -19,11 +19,13 @@
 
 package net.sf.mzmine.datamodel.impl;
 
+import java.util.Arrays;
 import java.util.TreeSet;
 import java.util.Vector;
 
 import javax.annotation.Nonnull;
 
+import net.sf.mzmine.datamodel.impl.SimpleDataPoint;
 import net.sf.mzmine.datamodel.DataPoint;
 import net.sf.mzmine.datamodel.MassList;
 import net.sf.mzmine.datamodel.Polarity;
@@ -61,6 +63,37 @@ public class SimpleScan implements Scan {
 				.getPrecursorMZ(), sc.getPrecursorCharge(), sc
 				.getFragmentScanNumbers(), sc.getDataPoints(), sc
 				.isCentroided());
+	}
+	
+	// GLG HACK: ...
+	/** 
+	 * GLG HACK: 
+	 * Added constructor that guarantees DEEP COPY 
+	 */
+	public SimpleScan(Scan sc, RawDataFile rawDataFile) {
+		// Call above clone constructor
+		this(sc.getDataFile(), sc.getScanNumber(), sc.getMSLevel(), sc
+				.getRetentionTime(), sc.getParentScanNumber(), sc
+				.getPrecursorMZ(), sc.getPrecursorCharge(), sc
+				.getFragmentScanNumbers(), sc.getDataPoints(), sc
+				.isCentroided());
+		
+		// Handle non-primitive attributes
+		
+		if (rawDataFile != null) { this.dataFile = rawDataFile; }
+		
+		if (sc.getFragmentScanNumbers() != null) 
+			this.fragmentScans = Arrays.copyOf(sc.getFragmentScanNumbers(), sc.getFragmentScanNumbers().length);
+		else 
+			this.fragmentScans = sc.getFragmentScanNumbers();
+		
+		//this.basePeak = new SimpleDataPoint(sc.getBasePeak());	
+		//this.dataPoints = Arrays.copyOf(sc.getDataPoints(), sc.getNumberOfDataPoints(), DataPoint[].class);
+		this.dataPoints = new DataPoint[sc.getNumberOfDataPoints()]; 
+		for (int i=0; i < sc.getNumberOfDataPoints(); ++i)
+			this.dataPoints[i] = new SimpleDataPoint(sc.getDataPoints()[i]);
+		
+		if (this.dataPoints != null) { setDataPoints(this.dataPoints); }
 	}
 
 	/**

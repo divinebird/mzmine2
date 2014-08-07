@@ -29,6 +29,7 @@ import net.sf.mzmine.modules.rawdatamethods.peakpicking.massdetection.recursive.
 import net.sf.mzmine.modules.rawdatamethods.peakpicking.massdetection.wavelet.WaveletMassDetector;
 import net.sf.mzmine.parameters.Parameter;
 import net.sf.mzmine.parameters.impl.SimpleParameterSet;
+import net.sf.mzmine.parameters.parametertypes.BooleanParameter;
 import net.sf.mzmine.parameters.parametertypes.MSLevelParameter;
 import net.sf.mzmine.parameters.parametertypes.ModuleComboParameter;
 import net.sf.mzmine.parameters.parametertypes.RawDataFilesParameter;
@@ -52,12 +53,18 @@ public class MassDetectionParameters extends SimpleParameterSet {
     public static final MSLevelParameter msLevel = new MSLevelParameter();
 
     public static final StringParameter name = new StringParameter(
-	    "Mass list name",
-	    "Name of the new mass list. If the processed scans already have a mass list of that name, it will be replaced.",
-	    "masses");
+    	    "Mass list name",
+    	    "Name of the new mass list. If the processed scans already have a mass list of that name, it will be replaced.",
+    	    "masses");
+
+    public static final BooleanParameter name_to_unique = new BooleanParameter(
+    	    "Unique ML name",
+    	    "Appends a unique id (UUID) to the name of the new mass list." + 
+    	    " Can be useful in \"batch mode\" to get a different mass list name for each raw data file.",
+    	    false);
 
     public MassDetectionParameters() {
-	super(new Parameter[] { dataFiles, massDetector, msLevel, name });
+	super(new Parameter[] { dataFiles, massDetector, msLevel, name, name_to_unique });
     }
 
     @Override

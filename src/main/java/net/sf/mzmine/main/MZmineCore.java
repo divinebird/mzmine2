@@ -34,7 +34,6 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.swing.SwingUtilities;
 
-import net.sf.mzmine.datamodel.MZmineProject;
 import net.sf.mzmine.datamodel.RawDataFileWriter;
 import net.sf.mzmine.desktop.Desktop;
 import net.sf.mzmine.desktop.impl.HeadLessDesktop;
@@ -44,6 +43,7 @@ import net.sf.mzmine.modules.MZmineModule;
 import net.sf.mzmine.modules.MZmineProcessingModule;
 import net.sf.mzmine.modules.batchmode.BatchModeModule;
 import net.sf.mzmine.parameters.ParameterSet;
+import net.sf.mzmine.datamodel.MZmineProject;
 import net.sf.mzmine.project.ProjectManager;
 import net.sf.mzmine.project.impl.MZmineProjectImpl;
 import net.sf.mzmine.project.impl.ProjectManagerImpl;
@@ -66,6 +66,15 @@ public final class MZmineCore {
 
 	private static Map<Class<?>, MZmineModule> initializedModules = new Hashtable<Class<?>, MZmineModule>();
 
+	
+
+	// GLG HACK:
+	// Using an UTF-16 character as separator, such that user defined object names
+	// won't be allowed to contain it
+	private static final String unpastableSep = " \u00BB ";// (UTF-8)				//" \uD834\uDF06 "// (UTF-16);	
+	private static final String autogenPrefix = "AUTOGEN" + unpastableSep;
+
+	
 	/**
 	 * Main method
 	 */
@@ -291,4 +300,12 @@ public final class MZmineCore {
 		}
 	}
 
+
+	public static String getUnpastableSep() {
+		return unpastableSep;
+	}
+
+	public static String getAutogenPrefix() {
+		return autogenPrefix;
+	}
 }

@@ -21,6 +21,7 @@ package net.sf.mzmine.datamodel;
 
 import javax.annotation.Nonnull;
 
+import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.util.Range;
 
 public interface RawDataFile {
@@ -103,6 +104,21 @@ public interface RawDataFile {
 
     public double getDataMaxTotalIonCurrent(int msLevel);
 
+    
+    // GLG HACK: Add method for returning oldest RawDataFile ancestor if any
+    //           (aka: if applicable and has not been renamed or removed from project)
+    //           Fast impl (could be done in a smartest way), but for now: 
+    //                Based on RawDataFiles names !!!
+    /**
+     * Find the RawDataFile the this one was built from (based on names, for now...)
+     * @param oldest If TRUE: gets the oldest ancestor.
+     *               Otherwise: gets the direct previous ancestor.
+     * @return A RawDataFile object this one was built from, or null
+     *         (if not applicable or ancestor has been renamed or removed from project)
+     */
+    public RawDataFile getAncestorDataFile(boolean oldest);
+
+    
     /**
      * Close the file in case it is removed from the project
      */

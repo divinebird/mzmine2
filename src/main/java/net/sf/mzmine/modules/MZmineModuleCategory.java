@@ -30,6 +30,10 @@ public enum MZmineModuleCategory {
     ISOTOPES("Isotopes"), //
     PEAKLISTPICKING("Peak list processing"), //
     PEAKLISTFILTERING("Peak list filtering"), //
+    
+    // GLG HACK: Add peaks "Merging" features to peak list methods.
+    PEAKLISTMERGING("Peak list merging"), //
+    
     ALIGNMENT("Alignment"), //
     NORMALIZATION("Normalization"), //
     IDENTIFICATION("Identification"), //

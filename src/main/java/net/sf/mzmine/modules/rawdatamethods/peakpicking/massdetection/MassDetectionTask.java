@@ -25,15 +25,22 @@ import net.sf.mzmine.datamodel.DataPoint;
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.datamodel.Scan;
 import net.sf.mzmine.datamodel.impl.SimpleMassList;
+import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.modules.MZmineProcessingStep;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.taskcontrol.AbstractTask;
 import net.sf.mzmine.taskcontrol.TaskStatus;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class MassDetectionTask extends AbstractTask {
 
     private Logger logger = Logger.getLogger(this.getClass().getName());
     private RawDataFile dataFile;
+
+	// GLG HACK: Append unique id to the mass list name
+	//private static AtomicLong massListId = new AtomicLong();
+	private static final String unpastableSep = MZmineCore.getUnpastableSep();
 
     // scan counter
     private int processedScans = 0, totalScans = 0;
@@ -60,8 +67,14 @@ public class MassDetectionTask extends AbstractTask {
 	this.msLevel = parameters.getParameter(MassDetectionParameters.msLevel)
 		.getValue();
 
-	this.name = parameters.getParameter(MassDetectionParameters.name)
-		.getValue();
+
+	// GLG HACK: Append unique id to the mass list name if requested
+	if (parameters.getParameter(MassDetectionParameters.name_to_unique).getValue().equals(Boolean.TRUE))
+		this.name = parameters.getParameter(MassDetectionParameters.name).getValue() 
+		+ unpastableSep + String.valueOf(java.util.UUID.randomUUID());
+	//+ " \uD834\uDF06 " + String.valueOf(massListId.getAndIncrement());
+	else
+		this.name = parameters.getParameter(MassDetectionParameters.name).getValue();
 
     }
 

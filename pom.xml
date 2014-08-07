@@ -4,9 +4,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>net.sf.mzmine</groupId>
 	<artifactId>MZmine</artifactId>
-	<version>2.11</version>
+	<version>2.11-EEE</version>
 	<name>MZmine</name>
-	<description>MZmine 2 is an open-source project delivering a software for mass-spectrometry data processing, with the main focus on LC-MS data.</description>
+	<description>
+		MZmine 2 is an open-source project delivering a software for mass-spectrometry data processing, with the main focus on LC-MS data. 
+		The "-EEE" branch is mainly focused on debugging, but also on adding "GC-MS"-specific features...
+	</description>
 	<url>http://mzmine.sourceforge.net/</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -20,7 +23,7 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.4</version>
 				<configuration>
-					<source>1.8</source>
+					<source>1.6</source>
 					<target>1.6</target>
 					<encoding>UTF-8</encoding>
 				</configuration>
@@ -56,6 +59,44 @@
 					</archive>
 				</configuration>
 			</plugin>
+
+
+
+            <plugin>
+                <!-- Run with:
+                    mvn bash:run
+                    mvn install
+                -->
+                <groupId>com.atlassian.maven.plugins</groupId>
+                <artifactId>bash-maven-plugin</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <script>
+						if [ -n "${DO_RUN}" ]; then
+	                    	echo ">>> Launching MZmine!"
+	                    	PWD_VAR="$(pwd)"
+	                        echo "Working directory is: \"$PWD_VAR\""
+	                        cd $PWD_VAR"/target/"${project.artifactId}-${project.version}
+	                        ./startMZmine_Linux.sh
+	                    	echo ">>> Terminating MZmine!"
+	                    	exit 0
+	                    fi
+                    </script>
+                </configuration>
+            </plugin>
+
+
+
+
 		</plugins>
 		<resources>
 			<resource>
@@ -76,9 +117,19 @@
 			<url>http://www.ebi.ac.uk/~maven/m2repo</url>
 		</repository>
 		<repository>
+			<!-- jsr308 repository -->
+			<id>checker-framework-repo</id>
+			<url>http://types.cs.washington.edu/m2-repo</url>
+		</repository>
+		<repository>
 			<id>lib</id>
 			<name>MZmine local libraries</name>
 			<url>file://${project.basedir}/src/main/lib</url>
+		</repository>
+		<repository>
+			<id>local-repo</id>
+			<name>MZmine local libraries</name>
+			<url>file:///home/golgauth/.m2/repository</url>
 		</repository>
 	</repositories>
 	<dependencies>
@@ -108,6 +159,11 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>17.0</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+			<version>2.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -357,12 +413,16 @@
 		<!-- End of jars included with MZmine -->
 
 		<!-- Java3D dependency, marked as 'provided' = only for compilation ! -->
-		<dependency>
-			<groupId>java3d</groupId>
-			<artifactId>j3d-core</artifactId>
-			<version>1.3.1</version>
-			<scope>provided</scope>
-		</dependency>
+		<!-- Setup in JRE directly -->
+		
+		<!-- Bash Maven Plugin (for running bash scripts) -->
+        <dependency>
+            <groupId>com.atlassian.maven.plugins</groupId>
+            <artifactId>bash-maven-plugin</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
 
 	</dependencies>
 

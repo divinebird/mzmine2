@@ -11,11 +11,13 @@ HEAP_SIZE=`free -m | awk '/Mem:/ {print int($2 / 2)}'`
 TMP_FILE_DIRECTORY=/tmp
 
 # Set R environment variables.
-export R_HOME=/usr/lib64/R
+#export R_HOME=/usr/lib64/R
+export R_HOME=/usr/lib/R
 export R_SHARE_DIR=/usr/share/R/share 
 export R_INCLUDE_DIR=/usr/share/R/include
 export R_DOC_DIR=/usr/share/R/doc
-export R_LIBS_USER=${HOME}/R/x86_64-pc-linux-gnu-library/2.10
+#export R_LIBS_USER=${HOME}/R/x86_64-pc-linux-gnu-library/2.10
+export R_LIBS_USER=/usr/lib/R/site-library
 
 # Include R shared libraries in LD_LIBRARY_PATH.
 export LD_LIBRARY_PATH=${R_HOME}/lib:${R_HOME}/bin

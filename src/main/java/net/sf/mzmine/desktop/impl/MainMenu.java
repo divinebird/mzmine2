@@ -68,6 +68,12 @@ public class MainMenu extends JMenuBar implements ActionListener {
 	    projectSaveParameters, projectLoadParameters, projectExit,
 	    showAbout;
 
+    
+	// GLG HACK: Add peaks "Merging" features to peak list methods.
+    //           ("RT Merging", "RT Cumulative Merging")
+    private JMenu peakListMergingMenu;
+    
+    
     private int projectIOMenuIndex = 0, projectMenuIndex = 1,
 	    rawDataMenuIndex = 0, visualizationMenuIndex = 0;
 
@@ -151,6 +157,13 @@ public class MainMenu extends JMenuBar implements ActionListener {
 	peakListFilteringMenu.setMnemonic(KeyEvent.VK_P);
 	peakListMenu.add(peakListFilteringMenu);
 
+	
+	// GLG HACK: Add peaks "Merging" features to peak list methods.
+	peakListMergingMenu = new JMenu("Merging");
+	peakListMergingMenu.setMnemonic(KeyEvent.VK_M);
+	peakListMenu.add(peakListMergingMenu);
+
+	
 	alignmentMenu = new JMenu("Alignment");
 	alignmentMenu.setMnemonic(KeyEvent.VK_A);
 	peakListMenu.add(alignmentMenu);
@@ -237,6 +250,14 @@ public class MainMenu extends JMenuBar implements ActionListener {
 	case PEAKLISTFILTERING:
 	    peakListFilteringMenu.add(newItem);
 	    break;
+	    
+	    
+	// GLG HACK: Add peaks "Merging" features to peak list methods.
+	case PEAKLISTMERGING:
+	    peakListMergingMenu.add(newItem);
+	    break;
+	    
+	    
 	case ALIGNMENT:
 	    alignmentMenu.add(newItem);
 	    break;

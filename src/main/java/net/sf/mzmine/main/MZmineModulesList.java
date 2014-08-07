@@ -51,6 +51,7 @@ import net.sf.mzmine.modules.peaklistmethods.io.xmlexport.XMLExportModule;
 import net.sf.mzmine.modules.peaklistmethods.io.xmlimport.XMLImportModule;
 import net.sf.mzmine.modules.peaklistmethods.isotopes.deisotoper.IsotopeGrouperModule;
 import net.sf.mzmine.modules.peaklistmethods.isotopes.isotopeprediction.IsotopePatternCalculator;
+import net.sf.mzmine.modules.peaklistmethods.merging.rt.PeakMergerModule;
 import net.sf.mzmine.modules.peaklistmethods.normalization.linear.LinearNormalizerModule;
 import net.sf.mzmine.modules.peaklistmethods.normalization.rtnormalizer.RTNormalizerModule;
 import net.sf.mzmine.modules.peaklistmethods.normalization.standardcompound.StandardCompoundNormalizerModule;
@@ -138,6 +139,12 @@ public class MZmineModulesList {
 	    // Peak list filtering
 	    DuplicateFilterModule.class,
 	    RowsFilterModule.class,
+	    
+	    
+	    // GLG HACK: Add peaks "Merging" features to peak list methods.
+	    PeakMergerModule.class,
+	    
+	    
 	    // Normalization
 	    RTNormalizerModule.class,
 	    LinearNormalizerModule.class,

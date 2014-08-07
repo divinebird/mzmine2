@@ -50,6 +50,10 @@ public class MZmineProjectImpl implements MZmineProject {
 	
 	private File projectFile;
 
+	// GLG HACK:
+	private static final String unpastableSep = " \uD834\uDF06 ";
+	private static final String autogenPrefix = "AUTOGEN" + unpastableSep;
+
 	public MZmineProjectImpl() {
 
 		this.peakListTreeModel = new PeakListTreeModel(this);
