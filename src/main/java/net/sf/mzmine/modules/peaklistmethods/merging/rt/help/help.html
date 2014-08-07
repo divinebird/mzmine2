@@ -1,0 +1,85 @@
+<html>
+	<head>
+		<title>Peak detection - Merging - RT based peak merger</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<link rel="stylesheet" type="text/css" href="/net/sf/mzmine/desktop/impl/helpsystem/HelpStyles.css">
+    </head>
+
+<body>
+
+<h1>Peak merger</h1>
+
+<h2>Description</h2>
+
+<p>
+This module extends the peaks in a peak group in both directions of the retention time. 
+The purpose is mainly to merge peak located in the same retention time range in LC-MS context. 
+This is particularly useful after having applied a Deconvolution.
+The merging is performed peak by peak, and can be built by cumulating the peaks determined as belonging to the same RT group.
+This way, each group of peaks results in a single one, which is designed to be representative of the group simply by RT and shape, but 
+also gives the correct cumulative properties (area, height, ...). 
+The final peak is either based on the file used to generate the original peak list, or from the oldest raw data file ancestor 
+(the letter giving a more accurate area for each peak, making it easier to compare between peaks in a given raw sample data file, as well as 
+cross samples comparisons). 
+</p>
+
+<h4>Method parameters</h4>
+<dl>
+<dt>Suffix</dt>
+<dd>This string is added to the end of the name of each processed peak list.</dd>
+
+<dt>m/z tolerance</dt>
+<dd>Maximum allowed distance in M/Z between the top data point of all peaks inside each group</dd>
+
+<dt>Retention time tolerance</dt>
+<dd>Maximum allowed distance in RT between the top data point of all peaks inside each group.</dd>
+
+<dt>Use original data file</dt>
+<dd>If checked, get peaks information from the very oldest Raw Data File ancestor (if it has not been removed). 
+Otherwise: information are grabbed as usual (from the data file the peak list to be merged was built from).</dd>
+
+<dt>DETECTED m/z search window</dt>
+<dd>Ignored if "Use DETECTED peaks only" or "Use original raw data file" is unchecked, or if "Cumulative computing" is checked. 
+Searches for the top data point among the DETECTED m/z peaks according to this window. The goal, here, is to reduce the values of
+the cumulated area, intensity, ... of the merged peaks only to the data points around the current group (in term of m/z). 
+This is the reason why it hasn't got much sense when not combined with the option "Use original raw data file" - Normally, 
+in this case, detected peaks would have already been separated (for example by deconvolution, ...), and the need for merging them 
+back wouldn't be pertinent as well.</dd>
+
+<dt>Use DETECTED peaks only</dt>
+<dd>If checked, resulting merged peaks are computed from DETECTED peaks only. 
+Otherwise: information are grabbed from the whole raw data file 
+(takes all the intermediate m/z values within the specified "m/z tolerance").</dd>
+
+<dt>Cumulative computing mode (TIC)</dt>
+<dd>If checked, merged peaks are computed cumulatively. Peaks and their area, intensity and misc averages 
+are processed from TIC (total ion count). Otherwise: everything is determined from base peak intensity (top data point 
+of the highest peak in the group, such that the resulting peak doesn't reflect the attempt to get a pertinent quantitative 
+representation of the final merge (this latter case would be quite equivalent to use "abusively" the Peak Extender or the Remove 
+Duplicates modules with an infinite m/z tolerance).
+
+<dt>Remove original peak list</dt>
+<dd>If selected, the original peak list is automatically removed</dd>
+
+</dl>
+
+<p>
+<img src="fig1-original-deconvoluted-peak-list.png"><br>
+Peak list obtained from peak list deconvolution.<br>
+<img src="fig1-original-deconvoluted-peak-list_chromatogram.png"><br>
+And its related chromatogram.
+<br><br>
+<img src="fig2-merged-peak-list-from-oldest-raw-data-file.png"><br>
+The same peak list after running the Peak Merger from the "original oldest initial raw data file".<br>
+<img src="fig2-merged-peak-list-from-oldest-raw-data-file_chromatogram.png"><br>
+And its related chromatogram.
+<br><br>
+<img src="fig3-merged-peak-list-from-direct-raw-data-file.png"><br>
+The same peak list after running the Peak Merger from the "direct raw data file" 
+(the one associated to the peak list currently being processed by the merger).<br>
+<img src="fig3-merged-peak-list-from-direct-raw-data-file_chromatogram.png"><br>
+And its related chromatogram.
+</p>
+
+</body>
+</html>
