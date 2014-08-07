@@ -23,6 +23,7 @@ import java.util.Collection;
 
 import javax.swing.JTextField;
 
+import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.parameters.UserParameter;
 
 import org.w3c.dom.Element;
@@ -110,6 +111,13 @@ public class StringParameter implements UserParameter<String, JTextField> {
 	if ((value == null) || (value.trim().length() == 0)) {
 	    errorMessages.add(name + " is not set properly");
 	    return false;
+	} 
+	// GLG HACK: forbidding the "MZmineCore.unpastableSep" reserved separator for all 
+	//           user-defined string parameters 
+	else if (value.contains(MZmineCore.getUnpastableSep().trim())) {
+	    errorMessages.add(name + " is not set properly " + "" 
+	    		+ "(character \"" + MZmineCore.getUnpastableSep().trim() + "\" not allowed)");
+	    return false;		
 	}
 	return true;
     }

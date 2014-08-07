@@ -32,6 +32,7 @@ import net.sf.mzmine.datamodel.MassList;
 import net.sf.mzmine.datamodel.PeakList;
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.datamodel.Scan;
+import net.sf.mzmine.main.MZmineCore;
 
 /**
  * Project tree model implementation
@@ -155,6 +156,15 @@ public class RawDataTreeModel extends DefaultTreeModel {
 				.getLastPathComponent();
 		Object object = node.getUserObject();
 		String newName = (String) value;
+		
+		// GLG HACK: forbidding the "MZmineCore.unpastableSep" reserved separator for all 
+		//           user-defined character inputs (both keyboard and copy/paste actions)
+		if (newName.contains(MZmineCore.getUnpastableSep().trim())) {
+			throw new IllegalArgumentException(
+					"The character \"" + MZmineCore.getUnpastableSep().trim() + "\" is not allowed "
+					+ "for names in tree view. Renaming won't be applied.");			
+		}
+		
 		if (object instanceof RawDataFile) {
 			RawDataFile df = (RawDataFile) object;
 			df.setName(newName);
