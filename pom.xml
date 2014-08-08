@@ -38,9 +38,9 @@
 						<descriptor>assembly.xml</descriptor>
 				  		<descriptor>release2zip.xml</descriptor>
 					</descriptors>
-    <excludes>
-        <exclude>**/*.zip</exclude>
-    </excludes>
+			    	<excludes>
+			    	    <exclude>**/*.zip</exclude>
+			    	</excludes>
 				</configuration>
 				<executions>
 					<execution>
