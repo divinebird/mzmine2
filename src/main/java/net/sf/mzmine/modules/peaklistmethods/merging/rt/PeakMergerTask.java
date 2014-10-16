@@ -484,17 +484,31 @@ class PeakMergerTask extends AbstractTask {
 			//			} while ((it + 1 - scan_nums.size() != 0) && (scan_nums.get(it+1) == scan_nums.get(it) + 1));
 			int it = scan_nums.indexOf(mainScanNum);
 			scan_nums_ok.add(scan_nums.get(it));
-			// Get left side of the sequence 
-			do {
-				--it;
-				scan_nums_ok.add(0, scan_nums.get(it));
-			} while ((it != 0) && (scan_nums.get(it-1) == scan_nums.get(it) - 1));
-			// Get right side of the sequence
+			// Get left side of the sequence, if applicable
+			if ((it > 0) && (scan_nums.get(it-1) == scan_nums.get(it) - 1)) {
+				do {
+					--it;
+					scan_nums_ok.add(0, scan_nums.get(it));
+				} while ((it != 0) && (scan_nums.get(it-1) == scan_nums.get(it) - 1));
+			}
+//			--it;
+//			while ((it != 0) && (scan_nums.get(it) == scan_nums.get(it+1) - 1)) {
+//				scan_nums_ok.add(0, scan_nums.get(it));
+//				--it;
+//			}
+			// Get right side of the sequence, if applicable
 			it = scan_nums.indexOf(mainScanNum);
-			do {
-				++it;
-				scan_nums_ok.add(scan_nums.get(it));
-			} while ((it + 1 - scan_nums.size() != 0) && (scan_nums.get(it+1) == scan_nums.get(it) + 1));
+			if ((it < scan_nums.size()-1) && (scan_nums.get(it+1) == scan_nums.get(it) + 1)) {
+				do {
+					++it;
+					scan_nums_ok.add(scan_nums.get(it));
+				} while ((it + 1 - scan_nums.size() != 0) && (scan_nums.get(it+1) == scan_nums.get(it) + 1));
+			}
+//			++it;
+//			while ((it - scan_nums.size() != 0) && (scan_nums.get(it) == scan_nums.get(it-1) + 1)) {
+//				scan_nums_ok.add(scan_nums.get(it));
+//				++it;
+//			}
 			logger.log(Level.INFO, "Valid sequence is: " + scan_nums_ok.toString());
 
 			double rt_min = this.workingDataFile.getScan(scan_nums_ok.get(0)).getRetentionTime();
