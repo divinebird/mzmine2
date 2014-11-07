@@ -44,394 +44,422 @@ import static net.sf.mzmine.taskcontrol.TaskStatus.*;
 /**
  * TIC visualizer data set.  One data set is created per file shown in this visualizer.  We need to create separate
  * data set for each file because the user may add/remove files later.
+ * 
+ * Added the possibility to switch to TIC plot type from a 
+ * "non-TICVisualizerWindow" context.
  */
 public class TICDataSet extends AbstractXYZDataset implements Task {
 
-    // Logger.
-    private static final Logger LOG = Logger.getLogger(TICDataSet.class.getName());
-
-    // For comparing small differences.
-    private static final double EPSILON = 0.0000001;
-
-    // Refresh interval (in milliseconds).
-    private static final long REDRAW_INTERVAL = 100L;
-
-    // Last time the data set was redrawn.
-    private static long lastRedrawTime = System.currentTimeMillis();
-
-    private final TICVisualizerWindow visualizer;
-    private final RawDataFile dataFile;
-
-    private final int[] scanNumbers;
-    private final int totalScans;
-    private int processedScans;
-
-    private final double[] basePeakValues;
-    private final double[] intensityValues;
-    private final double[] rtValues;
-    private final Range mzRange;
-    private double intensityMin;
-    private double intensityMax;
-
-    private TaskStatus status;
-    private final LinkedList<TaskListener> taskListeners;
-    private String errorMessage;
-
-    /**
-     * Create the data set.
-     *
-     * @param file           data file to plot.
-     * @param theScanNumbers scans to plot.
-     * @param rangeMZ        range of m/z to plot.
-     * @param window         visualizer window.
-     */
-    public TICDataSet(final RawDataFile file,
-                      final int[] theScanNumbers,
-                      final Range rangeMZ,
-                      final TICVisualizerWindow window) {
-
-        // Initialize.
-        visualizer = window;
-        mzRange = rangeMZ;
-        dataFile = file;
-        scanNumbers = theScanNumbers.clone();
-        totalScans = scanNumbers.length;
-        basePeakValues = new double[totalScans];
-        intensityValues = new double[totalScans];
-        rtValues = new double[totalScans];
-        processedScans = 0;
-        intensityMin = 0.0;
-        intensityMax = 0.0;
-        taskListeners = new LinkedList<TaskListener>();
-        status = WAITING;
-        errorMessage = null;
-
-        // Start-up the refresh task.
-        MZmineCore.getTaskController().addTask(this, TaskPriority.HIGH);
-    }
-
-    @Override
-    public void cancel() {
-
-        setStatus(CANCELED);
-    }
-
-    @Override
-    public String getErrorMessage() {
-
-        return errorMessage;
-    }
-
-    @Override
-    public double getFinishedPercentage() {
-
-        return totalScans == 0 ? 0.0 : (double) processedScans / (double) totalScans;
-    }
+	// Logger.
+	private static final Logger LOG = Logger.getLogger(TICDataSet.class.getName());
+
+	// For comparing small differences.
+	private static final double EPSILON = 0.0000001;
+
+	// Refresh interval (in milliseconds).
+	private static final long REDRAW_INTERVAL = 100L;
+
+	// Last time the data set was redrawn.
+	private static long lastRedrawTime = System.currentTimeMillis();
+
+	private final TICVisualizerWindow visualizer;
+	private final RawDataFile dataFile;
+
+	private final int[] scanNumbers;
+	private final int totalScans;
+	private int processedScans;
+
+	private final double[] basePeakValues;
+	private final double[] intensityValues;
+	private final double[] rtValues;
+	private final Range mzRange;
+	private double intensityMin;
+	private double intensityMax;
+
+	private TaskStatus status;
+	private final LinkedList<TaskListener> taskListeners;
+	private String errorMessage;
+
+
+	// Plot type
+	private PlotType plotType;
+
+
+	/**
+	 * Create the data set.
+	 *
+	 * @param file           data file to plot.
+	 * @param theScanNumbers scans to plot.
+	 * @param rangeMZ        range of m/z to plot.
+	 * @param window         visualizer window.
+	 */
+	public TICDataSet(final RawDataFile file,
+			final int[] theScanNumbers,
+			final Range rangeMZ,
+			final TICVisualizerWindow window) {
+		this(file, theScanNumbers, rangeMZ, window, 
+				((window != null) ? window.getPlotType() : PlotType.BASEPEAK));
+	}
+
+	/**
+	 * Create the data set + possibility to specify a plot type,
+	 * even outside a "TICVisualizerWindow" context.
+	 *
+	 * @param file           data file to plot.
+	 * @param theScanNumbers scans to plot.
+	 * @param rangeMZ        range of m/z to plot.
+	 * @param window         visualizer window.
+	 * @param plotType       plot type.
+	 */
+	public TICDataSet(final RawDataFile file,
+			final int[] theScanNumbers,
+			final Range rangeMZ,
+			final TICVisualizerWindow window,
+			PlotType plotType) {
+
+		// Initialize.
+		visualizer = window;
+		mzRange = rangeMZ;
+		dataFile = file;
+		scanNumbers = theScanNumbers.clone();
+		totalScans = scanNumbers.length;
+		basePeakValues = new double[totalScans];
+		intensityValues = new double[totalScans];
+		rtValues = new double[totalScans];
+		processedScans = 0;
+		intensityMin = 0.0;
+		intensityMax = 0.0;
+		taskListeners = new LinkedList<TaskListener>();
+		status = WAITING;
+		errorMessage = null;
+
+		this.plotType = plotType;
+
+		// Start-up the refresh task.
+		MZmineCore.getTaskController().addTask(this, TaskPriority.HIGH);
+	}
+
+	@Override
+	public void cancel() {
+
+		setStatus(CANCELED);
+	}
+
+	@Override
+	public String getErrorMessage() {
+
+		return errorMessage;
+	}
+
+	@Override
+	public double getFinishedPercentage() {
 
-    @Override
-    public TaskStatus getStatus() {
+		return totalScans == 0 ? 0.0 : (double) processedScans / (double) totalScans;
+	}
 
-        return status;
-    }
-
-    @Override
-    public String getTaskDescription() {
-
-        return "Updating TIC visualizer of " + dataFile;
-    }
-
-    @Override
-    public Object[] getCreatedObjects() {
-
-        return null;
-    }
-
-    /**
-     * Adds a TaskListener to this Task
-     *
-     * @param t The TaskListener to add
-     */
-    @Override
-    public void addTaskListener(final TaskListener t) {
+	@Override
+	public TaskStatus getStatus() {
 
-        taskListeners.add(t);
-    }
+		return status;
+	}
 
-    /**
-     * Returns all of the TaskListeners which are listening to this task.
-     *
-     * @return An array containing the TaskListeners
-     */
-    @Override
-    public TaskListener[] getTaskListeners() {
+	@Override
+	public String getTaskDescription() {
 
-        return taskListeners.toArray(new TaskListener[taskListeners.size()]);
-    }
+		return "Updating TIC visualizer of " + dataFile;
+	}
 
-    @Override
-    public void run() {
+	@Override
+	public Object[] getCreatedObjects() {
 
-        try {
-            setStatus(PROCESSING);
+		return null;
+	}
 
-            calculateValues();
+	/**
+	 * Adds a TaskListener to this Task
+	 *
+	 * @param t The TaskListener to add
+	 */
+	@Override
+	public void addTaskListener(final TaskListener t) {
 
-            if (status != CANCELED) {
+		taskListeners.add(t);
+	}
 
-                // Always redraw when we add last value.
-                refresh();
+	/**
+	 * Returns all of the TaskListeners which are listening to this task.
+	 *
+	 * @return An array containing the TaskListeners
+	 */
+	@Override
+	public TaskListener[] getTaskListeners() {
 
-                LOG.info("TIC data calculated for " + dataFile);
-                setStatus(FINISHED);
-            }
-        }
-        catch (Throwable t) {
+		return taskListeners.toArray(new TaskListener[taskListeners.size()]);
+	}
 
-            LOG.log(Level.SEVERE, "Problem calculating data set values for " + dataFile, t);
-            setStatus(ERROR);
-            errorMessage = t.getMessage();
-        }
-    }
+	@Override
+	public void run() {
 
-    @Override
-    public int getSeriesCount() {
+		try {
+			setStatus(PROCESSING);
 
-        return 1;
-    }
+			calculateValues();
 
-    @Override
-    public Comparable<String> getSeriesKey(final int series) {
+			if (status != CANCELED) {
 
-        return dataFile.getName();
-    }
+				// Always redraw when we add last value.
+				refresh();
 
-    @Override
-    public Number getZ(final int series, final int item) {
+				LOG.info("TIC data calculated for " + dataFile);
+				setStatus(FINISHED);
+			}
+		}
+		catch (Throwable t) {
 
-        return basePeakValues[item];
-    }
+			LOG.log(Level.SEVERE, "Problem calculating data set values for " + dataFile, t);
+			setStatus(ERROR);
+			errorMessage = t.getMessage();
+		}
+	}
 
-    @Override
-    public int getItemCount(final int series) {
+	@Override
+	public int getSeriesCount() {
 
-        return processedScans;
-    }
+		return 1;
+	}
 
-    @Override
-    public Number getX(final int series, final int item) {
+	@Override
+	public Comparable<String> getSeriesKey(final int series) {
 
-        return rtValues[item];
-    }
+		return dataFile.getName();
+	}
 
-    @Override
-    public Number getY(final int series, final int item) {
+	@Override
+	public Number getZ(final int series, final int item) {
 
-        return intensityValues[item];
-    }
+		return basePeakValues[item];
+	}
 
-    /**
-     * Returns index of data point which exactly matches given X and Y values
-     *
-     * @param retentionTime retention time.
-     * @param intensity     intensity.
-     * @return the nearest data point index.
-     */
-    public int getIndex(final double retentionTime, final double intensity) {
+	@Override
+	public int getItemCount(final int series) {
 
-        int index = -1;
-        for (int i = 0;
-             index < 0 && i < processedScans;
-             i++) {
+		return processedScans;
+	}
 
-            if (Math.abs(retentionTime - rtValues[i]) < EPSILON &&
-                Math.abs(intensity - intensityValues[i]) < EPSILON) {
+	@Override
+	public Number getX(final int series, final int item) {
 
-                index = i;
-            }
-        }
+		return rtValues[item];
+	}
 
-        return index;
-    }
+	@Override
+	public Number getY(final int series, final int item) {
 
-    public int getScanNumber(final int item) {
+		return intensityValues[item];
+	}
 
-        return scanNumbers[item];
-    }
+	/**
+	 * Returns index of data point which exactly matches given X and Y values
+	 *
+	 * @param retentionTime retention time.
+	 * @param intensity     intensity.
+	 * @return the nearest data point index.
+	 */
+	public int getIndex(final double retentionTime, final double intensity) {
 
-    public RawDataFile getDataFile() {
+		int index = -1;
+		for (int i = 0;
+				index < 0 && i < processedScans;
+				i++) {
 
-        return dataFile;
-    }
+			if (Math.abs(retentionTime - rtValues[i]) < EPSILON &&
+					Math.abs(intensity - intensityValues[i]) < EPSILON) {
 
-    /**
-     * Checks if given data point is local maximum.
-     *
-     * @param item the index of the item to check.
-     * @return true/false if the item is   a local maximum.
-     */
-    public boolean isLocalMaximum(final int item) {
+				index = i;
+			}
+		}
 
-        final boolean isLocalMaximum;
-        if (item <= 0 || item >= processedScans - 1) {
+		return index;
+	}
 
-            isLocalMaximum = false;
+	public int getScanNumber(final int item) {
 
-        } else {
+		return scanNumbers[item];
+	}
 
-            final double intensity = intensityValues[item];
-            isLocalMaximum = intensityValues[item - 1] <= intensity && intensity >= intensityValues[item + 1];
-        }
+	public RawDataFile getDataFile() {
 
-        return isLocalMaximum;
-    }
+		return dataFile;
+	}
 
-    /**
-     * Gets indexes of local maxima within given range.
-     *
-     * @param xMin minimum of range on x-axis.
-     * @param xMax maximum of range on x-axis.
-     * @param yMin minimum of range on y-axis.
-     * @param yMax maximum of range on y-axis.
-     * @return the local maxima in the given range.
-     */
-    public int[] findLocalMaxima(final double xMin,
-                                 final double xMax,
-                                 final double yMin,
-                                 final double yMax) {
+	/**
+	 * Checks if given data point is local maximum.
+	 *
+	 * @param item the index of the item to check.
+	 * @return true/false if the item is   a local maximum.
+	 */
+	public boolean isLocalMaximum(final int item) {
 
-        // Save data set size.
-        final int currentSize = processedScans;
-        final double[] rtCopy;
+		final boolean isLocalMaximum;
+		if (item <= 0 || item >= processedScans - 1) {
 
-        // If the RT values array is not filled yet, create a smaller copy.
-        if (currentSize < rtValues.length) {
+			isLocalMaximum = false;
 
-            rtCopy = new double[currentSize];
-            System.arraycopy(rtValues, 0, rtCopy, 0, currentSize);
+		} else {
 
-        } else {
+			final double intensity = intensityValues[item];
+			isLocalMaximum = intensityValues[item - 1] <= intensity && intensity >= intensityValues[item + 1];
+		}
 
-            rtCopy = rtValues;
-        }
+		return isLocalMaximum;
+	}
 
-        int startIndex = Arrays.binarySearch(rtCopy, xMin);
-        if (startIndex < 0) {
+	/**
+	 * Gets indexes of local maxima within given range.
+	 *
+	 * @param xMin minimum of range on x-axis.
+	 * @param xMax maximum of range on x-axis.
+	 * @param yMin minimum of range on y-axis.
+	 * @param yMax maximum of range on y-axis.
+	 * @return the local maxima in the given range.
+	 */
+	public int[] findLocalMaxima(final double xMin,
+			final double xMax,
+			final double yMin,
+			final double yMax) {
 
-            startIndex = -startIndex - 1;
-        }
+		// Save data set size.
+		final int currentSize = processedScans;
+		final double[] rtCopy;
 
-        final int length = rtCopy.length;
-        final Collection<Integer> indices = new ArrayList<Integer>(length);
-        for (int index = startIndex;
-             index < length && rtCopy[index] <= xMax;
-             index++) {
+		// If the RT values array is not filled yet, create a smaller copy.
+		if (currentSize < rtValues.length) {
 
-            // Check Y range..
-            final double intensity = intensityValues[index];
-            if (yMin <= intensity && intensity <= yMax && isLocalMaximum(index)) {
+			rtCopy = new double[currentSize];
+			System.arraycopy(rtValues, 0, rtCopy, 0, currentSize);
 
-                indices.add(index);
-            }
-        }
+		} else {
 
-        return CollectionUtils.toIntArray(indices);
-    }
+			rtCopy = rtValues;
+		}
 
-    public double getMinIntensity() {
+		int startIndex = Arrays.binarySearch(rtCopy, xMin);
+		if (startIndex < 0) {
 
-        return intensityMin;
-    }
+			startIndex = -startIndex - 1;
+		}
 
-    private void calculateValues() {
+		final int length = rtCopy.length;
+		final Collection<Integer> indices = new ArrayList<Integer>(length);
+		for (int index = startIndex;
+				index < length && rtCopy[index] <= xMax;
+				index++) {
 
-        // Determine plot type.
-        final PlotType plotType = visualizer != null ? visualizer.getPlotType() : PlotType.BASEPEAK;
+			// Check Y range..
+			final double intensity = intensityValues[index];
+			if (yMin <= intensity && intensity <= yMax && isLocalMaximum(index)) {
 
-        // Process each scan.
-        for (int index = 0;
-             status != CANCELED && index < totalScans;
-             index++) {
+				indices.add(index);
+			}
+		}
 
-            // Current scan.
-            final Scan scan = dataFile.getScan(scanNumbers[index]);
+		return CollectionUtils.toIntArray(indices);
+	}
 
-            // Determine base peak value.
-            final DataPoint basePeak =
-                    scan.getMZRange().isWithin(mzRange) ? scan.getHighestDataPoint() : ScanUtils.findBasePeak(scan, mzRange);
-            if (basePeak != null) {
+	public double getMinIntensity() {
 
-                basePeakValues[index] = basePeak.getMZ();
-            }
+		return intensityMin;
+	}
+	
+	public PlotType getPlotType() {
+		return this.plotType;
+	}
 
-            // Determine peak intensity.
-            double intensity = 0.0;
-            if (plotType == PlotType.TIC) {
+	private void calculateValues() {
 
-                // Total ion count.
-                intensity =
-                        scan.getMZRange().isWithin(mzRange) ? scan.getTIC() : ScanUtils.calculateTIC(scan, mzRange);
+		// Determine plot type (now done from constructor).
+		final PlotType plotType = this.plotType; 
 
-            } else if (plotType == PlotType.BASEPEAK && basePeak != null) {
+		// Process each scan.
+		for (int index = 0; status != CANCELED && index < totalScans; index++) {
 
-                intensity = basePeak.getIntensity();
-            }
+			// Current scan.
+			final Scan scan = dataFile.getScan(scanNumbers[index]);
 
-            intensityValues[index] = intensity;
-            rtValues[index] = scan.getRetentionTime();
+			// Determine base peak value.
+			final DataPoint basePeak =
+					scan.getMZRange().isWithin(mzRange) ? scan.getHighestDataPoint() : ScanUtils.findBasePeak(scan, mzRange);
+					if (basePeak != null) {
+						basePeakValues[index] = basePeak.getMZ();
+					}
 
-            // Update min and max.
-            if (index == 0) {
+					// Determine peak intensity.
+					double intensity = 0.0;
+					if (plotType == PlotType.TIC) {
 
-                intensityMin = intensity;
-                intensityMax = intensity;
+						// Total ion count.
+						intensity = scan.getMZRange().isWithin(mzRange) ? scan.getTIC() : ScanUtils.calculateTIC(scan, mzRange);
 
-            } else {
+					} else if (plotType == PlotType.BASEPEAK && basePeak != null) {
 
-                intensityMin = Math.min(intensity, intensityMin);
-                intensityMax = Math.max(intensity, intensityMax);
-            }
+						intensity = basePeak.getIntensity();
+					}
 
-            processedScans++;
+					intensityValues[index] = intensity;
+					rtValues[index] = scan.getRetentionTime();
 
-            // Refresh every REDRAW_INTERVAL ms.
-            synchronized (TICDataSet.class) {
+					// Update min and max.
+					if (index == 0) {
 
-                if (System.currentTimeMillis() - lastRedrawTime > REDRAW_INTERVAL) {
+						intensityMin = intensity;
+						intensityMax = intensity;
 
-                    refresh();
-                    lastRedrawTime = System.currentTimeMillis();
-                }
-            }
-        }
-    }
+					} else {
 
-    /**
-     * Notify data set listener (on the EDT).
-     */
-    private void refresh() {
+						intensityMin = Math.min(intensity, intensityMin);
+						intensityMax = Math.max(intensity, intensityMax);
+					}
 
-        SwingUtilities.invokeLater(new Runnable() {
+					processedScans++;
 
-            @Override
-            public void run() {
+					// Refresh every REDRAW_INTERVAL ms.
+					synchronized (TICDataSet.class) {
 
-                fireDatasetChanged();
-            }
-        });
-    }
+						if (System.currentTimeMillis() - lastRedrawTime > REDRAW_INTERVAL) {
+							refresh();
+							lastRedrawTime = System.currentTimeMillis();
+						}
+					}
+		}
+	}
 
-    private void fireTaskEvent() {
+	/**
+	 * Notify data set listener (on the EDT).
+	 */
+	private void refresh() {
 
-        final TaskEvent event = new TaskEvent(this);
-        for (final TaskListener t : taskListeners) {
+		SwingUtilities.invokeLater(new Runnable() {
 
-            t.statusChanged(event);
-        }
-    }
+			@Override
+			public void run() {
 
-    private void setStatus(final TaskStatus newStatus) {
+				fireDatasetChanged();
+			}
+		});
+	}
 
-        status = newStatus;
-        fireTaskEvent();
-    }
+	private void fireTaskEvent() {
+
+		final TaskEvent event = new TaskEvent(this);
+		for (final TaskListener t : taskListeners) {
+
+			t.statusChanged(event);
+		}
+	}
+
+	private void setStatus(final TaskStatus newStatus) {
+
+		status = newStatus;
+		fireTaskEvent();
+	}
 }
