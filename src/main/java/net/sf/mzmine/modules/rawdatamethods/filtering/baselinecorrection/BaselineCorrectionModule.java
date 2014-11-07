@@ -21,6 +21,7 @@
  * pre-existing code or project. Syngenta does not assert ownership or copyright any over pre-existing work.
  */
 
+
 package net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection;
 
 import java.util.Collection;
