@@ -211,7 +211,20 @@ class PeakMergerTask extends AbstractTask {
 
 
 				// Switch accordingly to option "Only DETECTED peaks"
-				dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
+				//**dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
+//				if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
+//				{
+//					double tic = 0.0;
+//					for (final Feature gp : groupedPeaks) {
+//						DataPoint dp = gp.getDataPoint(scan.getScanNumber());
+//						if (dp != null) tic += dp.getIntensity();
+//					}
+//					dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
+//				} 
+//				else 
+				{
+					dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
+				}
 
 
 				if (dataPoint != null /* || dataPoint.getIntensity() < minimumHeight */)
@@ -230,7 +243,20 @@ class PeakMergerTask extends AbstractTask {
 			scanNumber = originScanNumber;
 			scan = this.workingDataFile.getScan(originScanNumber);
 			// Switch accordingly to option "Only DETECTED peaks"
-			dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
+			//**dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
+//			if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
+//			{
+//				double tic = 0.0;
+//				for (final Feature gp : groupedPeaks) {
+//					DataPoint dp = gp.getDataPoint(scan.getScanNumber());
+//					if (dp != null) tic += dp.getIntensity();
+//				}
+//				dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
+//			} 
+//			else 
+			{
+				dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);				
+			}
 			//
 			if (dataPoint == null && this.useOnlyDetectedPeaks) {
 				this.useOnlyDetectedPeaks = false;
@@ -268,7 +294,20 @@ class PeakMergerTask extends AbstractTask {
 
 
 				// Switch accordingly to option "Only DETECTED peaks"
-				dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
+				//**dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
+//				if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
+//				{
+//					double tic = 0.0;
+//					for (final Feature gp : groupedPeaks) {
+//						DataPoint dp = gp.getDataPoint(scan.getScanNumber());
+//						if (dp != null) tic += dp.getIntensity();
+//					}
+//					dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
+//				} 
+//				else 
+				{
+					dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
+				}
 
 
 				if (dataPoint != null /* || dataPoint.getIntensity() < minimumHeight */)
@@ -361,8 +400,21 @@ class PeakMergerTask extends AbstractTask {
 						// Get the only one data point available in the scan (no matter the m/z) - Infinite window
 						// (Remember that the "Cumulative / TIC" RDF contains only one DataPoint per scan !!)
 						if (this.cumulativeComputing) {
-							dp = ScanUtils.findBasePeak(refScan, mzRange);
-						} 
+							///*** dp = ScanUtils.findBasePeak(refScan, mzRange);
+							//- if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
+							//- {
+								double tic = 0.0;
+								//- for (final Feature gp : groupedPeaks) {
+								for (int j=0; j < peaksGroup.size(); j++) {
+									DataPoint dp_0 = peaksGroup.get(j).getDataPoint(scanNumber);
+									if (dp_0 != null) tic += dp_0.getIntensity();
+								}
+								//- dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
+								dp = new SimpleDataPoint(mz, tic);
+								if (dp != null)	{ l_data_pts.add(dp); }
+								break;
+							//- }
+						}
 						// Get the top data point in the user-specified window
 						else {
 							DataPoint[] dp_arr = refScan.getDataPointsByMass(new Range(mz - mzHalfSearch, mz + mzHalfSearch));
