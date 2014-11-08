@@ -55,7 +55,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * String: dataFile being processed.
 	 * int[]: 3 values array => { progress, progressMax, isAborted }
 	 */
-	HashMap<String, int[]> progressMap;
+	HashMap<RawDataFile, int[]> progressMap;
 
 	// Filename suffix.
 	private String suffix;
@@ -65,15 +65,15 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	private boolean useBins;
 	private int msLevel;
 	private ChromatogramType chromatogramType;
-	
-	
+
+
 	/**
 	 * Initialization
 	 */
 	public BaselineCorrector() {
 
 		// Processing info storage
-		progressMap = new HashMap<String, int[]>();
+		progressMap = new HashMap<RawDataFile, int[]>();
 
 		// Check for R requirements
 		String missingPackage = checkRPackages(getRequiredRPackages());
@@ -82,7 +82,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 		}
 
 	}
-	
+
 	/**
 	 * Getting general parameters (common to all the correctors).
 	 * @param generalParameters The parameters common to all methods (grabbed from "BaselineCorrectionParameters")
@@ -95,7 +95,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 		msLevel = generalParameters.getParameter(BaselineCorrectionParameters.MS_LEVEL).getValue();
 		chromatogramType = generalParameters.getParameter(BaselineCorrectionParameters.CHROMOTAGRAM_TYPE).getValue();
 	}
-	
+
 	/**
 	 * Try loading packages required by this instance of baseline corrector.
 	 * Gives a name if anything went wrong.
@@ -122,18 +122,18 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 		// Get very last information from root module setup
 		this.setGeneralParameters(MZmineCore.getConfiguration().getModuleParameters(BaselineCorrectionModule.class));
 		RawDataFile correctedDataFile = null;
-		
+
 		try {
-			
+
 			RawDataFile origDataFile = dataFile;
-			
+
 			// Initialize progress info if not done already.
-			if (!progressMap.containsKey(origDataFile.getName()))
-					progressMap.put(origDataFile.getName(), new int[] {0, 0, 0});
-			
+			if (!progressMap.containsKey(origDataFile))
+				progressMap.put(origDataFile, new int[] {0, 0, 0});
+
 			// Create a new temporary file to write in.
 			RawDataFileWriter rawDataFileWriter = MZmineCore.createNewFile(origDataFile.getName() + ' ' + suffix);
-			
+
 			// Determine number of bins.
 			final int numBins = useBins ? (int) Math.ceil(origDataFile.getDataMZRange().getSize() / binWidth) : 1;
 
@@ -148,7 +148,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 				final int numScans = origDataFile.getScanNumbers(level).length;
 				foundLevel |= isMSLevel;
 				//progressMax += isMSLevel || msLevel == 0 ? 2 * numScans + numBins : numScans;
-				progressMap.get(origDataFile.getName())[1] += (isMSLevel || msLevel == 0 ? 2 * numScans + numBins : numScans);
+				progressMap.get(origDataFile)[1] += (isMSLevel || msLevel == 0 ? 2 * numScans + numBins : numScans);
 			}
 
 			// Is the specified MS-level present?
@@ -184,15 +184,15 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 				// Finalize writing.
 				correctedDataFile = rawDataFileWriter.finishWriting();
 			}
-			
+
 		} catch (Throwable t) {
 			LOG.log(Level.SEVERE, "Baseline correction error", t);
 			//LOG.log(Level.SEVERE, "Baseline correction error", ExceptionUtils.getStackTrace(t));
 		}
-		
+
 		return correctedDataFile;
 	}
-	
+
 	/**
 	 * Copy scans to RawDataFileWriter.
 	 *
@@ -202,7 +202,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @throws IOException if there are i/o problems.
 	 */
 	private void copyScansToWriter(final RawDataFile origDataFile, final RawDataFileWriter writer, final int level)
-					throws IOException {
+			throws IOException {
 
 		LOG.finest("Copy scans");
 
@@ -230,7 +230,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 			final SimpleScan newScan = new SimpleScan(origScan);
 			newScan.setDataPoints(newDataPoints);
 			writer.addScan(newScan);
-			progressMap.get(origDataFile.getName())[0]++; //progress++;
+			progressMap.get(origDataFile)[0]++;
 		}
 	}
 
@@ -246,7 +246,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 */
 	private void correctBasePeakBaselines(final RawDataFile origDataFile, 
 			final RawDataFileWriter writer, final int level, final int numBins, final ParameterSet parameters)
-			throws IOException {
+					throws IOException {
 
 		// Get scan numbers from original file.
 		final int[] scanNumbers = origDataFile.getScanNumbers(level);
@@ -260,7 +260,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 		LOG.finest("Calculating baselines.");
 		for (int binIndex = 0; !isAborted(origDataFile) && binIndex < numBins; binIndex++) {
 			baseChrom[binIndex] = computeBaseline(baseChrom[binIndex], parameters);
-			progressMap.get(origDataFile.getName())[0]++; //progress++;
+			progressMap.get(origDataFile)[0]++;
 		}
 
 		// Subtract baselines.
@@ -277,7 +277,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 			final SimpleScan newScan = new SimpleScan(origScan);
 			newScan.setDataPoints(subtractBasePeakBaselines(origDataFile, origDataPoints, baseChrom, numBins, scanIndex));
 			writer.addScan(newScan);
-			progressMap.get(origDataFile.getName())[0]++; //progress++;
+			progressMap.get(origDataFile)[0]++;
 		}
 	}
 
@@ -318,7 +318,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 					baseChrom[binIndex][scanIndex] = baseline[scanIndex] / bc;
 				}
 			}
-			progressMap.get(origDataFile.getName())[0]++; //progress++;
+			progressMap.get(origDataFile)[0]++;
 		}
 
 		// Subtract baselines.
@@ -335,9 +335,9 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 			final SimpleScan newScan = new SimpleScan(origScan);
 			newScan.setDataPoints(subtractTICBaselines(origDataFile, origDataPoints, baseChrom, numBins, scanIndex));
 			writer.addScan(newScan);
-			progressMap.get(origDataFile.getName())[0]++; //progress++;
+			progressMap.get(origDataFile)[0]++;
 		}
-		
+
 	}
 
 	/**
@@ -372,7 +372,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 				final double value = chromatograms[bin][scanIndex];
 				chromatograms[bin][scanIndex] = Math.max(value, dataPoint.getIntensity());
 			}
-			progressMap.get(origDataFile.getName())[0]++; //progress++;
+			progressMap.get(origDataFile)[0]++;
 		}
 
 		return chromatograms;
@@ -408,7 +408,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 
 				chromatograms[mzRange.binNumber(numBins, dataPoint.getMZ())][scanIndex] += dataPoint.getIntensity();
 			}
-			progressMap.get(origDataFile.getName())[0]++; //progress++;
+			progressMap.get(origDataFile)[0]++;
 		}
 
 		return chromatograms;
@@ -499,7 +499,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @param origDataFile dataFile of concern.
 	 */
 	public void initProgress(final RawDataFile origDataFile) {
-		progressMap.put(origDataFile.getName(), new int[] {0, 0, 0});
+		progressMap.put(origDataFile, new int[] {0, 0, 0});
 	}
 	/**
 	 * Getting progress.
@@ -507,8 +507,8 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @return progress.
 	 */
 	public int getProgress(final RawDataFile origDataFile) {
-		if (progressMap.containsKey(origDataFile.getName()))
-			return progressMap.get(origDataFile.getName())[0]; //progress;
+		if (progressMap.containsKey(origDataFile))
+			return progressMap.get(origDataFile)[0]; //progress;
 		else
 			return 0;
 	}
@@ -518,8 +518,8 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @return progressMax.
 	 */
 	public int getProgressMax(final RawDataFile origDataFile) {
-		if (progressMap.containsKey(origDataFile.getName()))
-			return progressMap.get(origDataFile.getName())[1]; //progressMax;
+		if (progressMap.containsKey(origDataFile))
+			return progressMap.get(origDataFile)[1]; //progressMax;
 		else
 			return 0;
 	}
@@ -528,9 +528,9 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @param origDataFile dataFile of concern.
 	 */
 	public void clearProgress(final RawDataFile origDataFile) {
-		progressMap.remove(origDataFile.getName());
+		progressMap.remove(origDataFile);
 	}
-	
+
 	// Chromatogram type
 	public ChromatogramType getChromatogramType() {
 		return MZmineCore.getConfiguration().getModuleParameters(BaselineCorrectionModule.class)
@@ -545,8 +545,8 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 */
 	public void setAbortProcessing(final RawDataFile origDataFile, boolean abort) {
 		//this.isAborted = abort;
-		if (progressMap.containsKey(origDataFile.getName()))
-			progressMap.get(origDataFile.getName())[2] = 1;
+		if (progressMap.containsKey(origDataFile))
+			progressMap.get(origDataFile)[2] = 1;
 	}
 	/**
 	 * Check if dataFile processing has been canceled.
@@ -554,8 +554,8 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @return True if it has.
 	 */
 	private boolean isAborted(final RawDataFile origDataFile) {
-		if (progressMap.containsKey(origDataFile.getName()))
-			return (progressMap.get(origDataFile.getName())[2] == 1);
+		if (progressMap.containsKey(origDataFile))
+			return (progressMap.get(origDataFile)[2] == 1);
 		else
 			return false;
 	}
