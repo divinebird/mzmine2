@@ -60,8 +60,11 @@ public class BaselineCorrectionTask extends AbstractTask {
 	private final boolean removeOriginal;
 
 	// Baseline corrector processing step
-	private MZmineProcessingStep<BaselineCorrector> baselineCorrectorProcStep;
+	private final MZmineProcessingStep<BaselineCorrector> baselineCorrectorProcStep;
 
+    // Progress counters.
+    private int progress;
+    private int progressMax;
 
 	/**
 	 * Creates the task.
@@ -69,8 +72,7 @@ public class BaselineCorrectionTask extends AbstractTask {
 	 * @param dataFile   raw data file on which to perform correction.
 	 * @param parameters correction parameters.
 	 */
-	public BaselineCorrectionTask(final RawDataFile dataFile,
-			final ParameterSet parameters) {
+	public BaselineCorrectionTask(final RawDataFile dataFile, final ParameterSet parameters) {
 
 		// Check R availability.
 		try {
@@ -82,6 +84,8 @@ public class BaselineCorrectionTask extends AbstractTask {
 		}
 
 		// Initialize.
+//        progressMax = 0;
+//        progress = 0;
 		origDataFile = dataFile;
 		correctedDataFile = null;
 		removeOriginal = parameters.getParameter(BaselineCorrectionParameters.REMOVE_ORIGINAL).getValue();
@@ -97,8 +101,8 @@ public class BaselineCorrectionTask extends AbstractTask {
 
 	@Override
 	public double getFinishedPercentage() {
-		int progressMax = baselineCorrectorProcStep.getModule().getProgressMax();
-		int progress = baselineCorrectorProcStep.getModule().getProgress();
+		progressMax = baselineCorrectorProcStep.getModule().getProgressMax(origDataFile);
+		progress = baselineCorrectorProcStep.getModule().getProgress(origDataFile);
 		return progressMax == 0 ? 0.0 : (double) progress / (double) progressMax;
 	}
 
@@ -112,9 +116,10 @@ public class BaselineCorrectionTask extends AbstractTask {
 
 		// Update the status of this task
 		setStatus(TaskStatus.PROCESSING);
+		this.baselineCorrectorProcStep.getModule().initProgress(origDataFile);
 
 		try {
-
+			
 			final RawDataFile correctedDataFile = 
 					this.baselineCorrectorProcStep.getModule().correctDatafile(origDataFile, baselineCorrectorProcStep.getParameterSet());
 
@@ -142,12 +147,15 @@ public class BaselineCorrectionTask extends AbstractTask {
 			setStatus(TaskStatus.ERROR);
 			errorMessage = t.getMessage();
 		}
+		
+		this.baselineCorrectorProcStep.getModule().clearProgress(origDataFile);
+
 	}
 
 	@Override
 	public void cancel() {
 		// Ask running module to stop
-		baselineCorrectorProcStep.getModule().setAbortProcessing(true);
+		baselineCorrectorProcStep.getModule().setAbortProcessing(origDataFile, true);
 		super.cancel();
 	}
 
