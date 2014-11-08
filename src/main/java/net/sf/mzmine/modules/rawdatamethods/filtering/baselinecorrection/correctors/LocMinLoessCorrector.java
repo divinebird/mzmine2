@@ -38,7 +38,7 @@ public class LocMinLoessCorrector extends BaselineCorrector {
 	
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "PROcess" };
+		return new String[] { "rJava", "PROcess" };
 	}
 
 	@Override

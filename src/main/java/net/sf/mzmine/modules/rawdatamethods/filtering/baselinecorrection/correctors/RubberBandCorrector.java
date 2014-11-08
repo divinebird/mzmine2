@@ -39,7 +39,7 @@ public class RubberBandCorrector extends BaselineCorrector {
 	
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "hyperSpec" };
+		return new String[] { "rJava", "hyperSpec" };
 	}
 
 	@Override

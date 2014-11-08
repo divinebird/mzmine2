@@ -38,7 +38,7 @@ public class AsymmetryCorrector extends BaselineCorrector {
 	
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "ptw" };
+		return new String[] { "rJava", "ptw" };
 	}
 
 	@Override

@@ -39,7 +39,7 @@ public class RollingBallCorrector extends BaselineCorrector {
 	
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "baseline" };
+		return new String[] { "rJava", "baseline" };
 	}
 
 	@Override
