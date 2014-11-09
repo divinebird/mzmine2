@@ -99,10 +99,14 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 
 	public void actionPerformed(ActionEvent event) {
 
-		super.actionPerformed(event);
-
 		Object src = event.getSource();
+		
+		// Avoid calling twice "parametersChanged()" for the widgets specific to this inherited dialog class
+		if (src != comboDataFileName && src != previewCheckBox && src != ticViewCheckBox) { 
+			super.actionPerformed(event); 
+		}
 
+		// Specific widgets
 		if (src == comboDataFileName) {
 			int ind = comboDataFileName.getSelectedIndex();
 			if (ind >= 0) {
@@ -113,23 +117,9 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 
 		if (src == previewCheckBox) {
 			if (previewCheckBox.isSelected()) {
-				// Set the height of the preview to 200 cells, so it will span
-				// the whole vertical length of the dialog (buttons are at row
-				// no 100). Also, we set the weight to 10, so the preview
-				// component will consume most of the extra available space.
-				mainPanel.add(ticPlot, 3, 0, 1, 200, 10, 10,
-						GridBagConstraints.BOTH);
-				pnlPreviewFields.setVisible(true);
-				updateMinimumSize();
-				pack();
-				parametersChanged();
-				setLocationRelativeTo(MZmineCore.getDesktop().getMainWindow());
+				showPreview();
 			} else {
-				mainPanel.remove(ticPlot);
-				pnlPreviewFields.setVisible(false);
-				updateMinimumSize();
-				pack();
-				setLocationRelativeTo(MZmineCore.getDesktop().getMainWindow());
+				hidePreview();
 			}
 		}
 		
@@ -138,6 +128,30 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 		}
 
 	}
+	public void showPreview() {
+		// Set the height of the preview to 200 cells, so it will span
+		// the whole vertical length of the dialog (buttons are at row
+		// no 100). Also, we set the weight to 10, so the preview
+		// component will consume most of the extra available space.
+		mainPanel.add(ticPlot, 3, 0, 1, 200, 10, 10,
+				GridBagConstraints.BOTH);
+		pnlPreviewFields.setVisible(true);
+		updateMinimumSize();
+		pack();
+		parametersChanged();
+		setLocationRelativeTo(MZmineCore.getDesktop().getMainWindow());
+		
+		//previewCheckBox.setSelected(true);
+	}
+	public void hidePreview() {
+		mainPanel.remove(ticPlot);
+		pnlPreviewFields.setVisible(false);
+		updateMinimumSize();
+		pack();
+		setLocationRelativeTo(MZmineCore.getDesktop().getMainWindow());
+		
+		//previewCheckBox.setSelected(false);
+	}
 
 	public PlotType getPlotType() {
 		return (ticViewCheckBox.isSelected() ? PlotType.TIC : PlotType.BASEPEAK);
@@ -145,6 +159,10 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 
 	public void setPlotType(PlotType plotType) {
 		ticViewCheckBox.setSelected((plotType == PlotType.TIC));
+	}
+
+	public RawDataFile getPreviewDataFile() {
+		return this.previewDataFile;
 	}
 
 	protected void parametersChanged() {
