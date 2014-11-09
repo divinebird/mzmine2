@@ -74,24 +74,27 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 				rEngine.assign("chromatogram", chromatogram);
 				// Transform chromatogram.
 				rEngine.eval("mat = matrix(chromatogram, nrow=1)");
-				
+
 				// Calculate baseline.
 				rEngine.eval("bl = NULL");
 				// This method can fail for some bins when "useBins" is enabled
 				String cmd = "tryCatch({" +
-					"bl = baseline(mat, left=" + left + ", right=" + right + 
-					", lwin=" + lwin + ", rwin=" + rwin + ", snminimum=" + snminimum + 
-					", mono=" + mono + ", multiplier=" + multiplier + ", method='peakDetection')" +
-				"}, warning = function(war) {" +
-				    //"message(\"<R warning>: \", war)" +
-				"}, error = function(err) {" +
-					"message(\"<R error>: \", err)" +
-				"}, finally = {" +
-				    //"" +
-				"})";
+						"bl = baseline(mat, left=" + left + ", right=" + right + 
+						", lwin=" + lwin + ", rwin=" + rwin + ", snminimum=" + snminimum + 
+						", mono=" + mono + ", multiplier=" + multiplier + ", method='peakDetection')" +
+					"}, warning = function(war) {" +
+					    "message(\"<R warning>: \", war);" +
+					"}, error = function(err) {" +
+						"message(\"<R error>: \", err);" +
+					"}, finally = {" +
+					    //"" +
+					"})";
 				rEngine.eval(cmd);
-				// Return flat zero baseline in case of failure
-				baseline = rEngine.eval("if (!is.null(bl)) { getBaseline(bl); } else { matrix(rep(0,length(chromatogram)), nrow=1); }").asDoubleArray();
+				// Return a flat baseline (passing by the lowest intensity scan - "min(chromatogram)") in case of failure
+				// Anyway, this usually happens when "chromatogram" is fully flat and zeroed.
+				baseline = rEngine.eval(
+						"if (!is.null(bl)) { getBaseline(bl); } else { matrix(rep(min(chromatogram), length(chromatogram)), nrow=1); }"
+						).asDoubleArray();
 			}
 			catch (Throwable t) {
 				throw new IllegalStateException("R error during baseline correction: ", t);
