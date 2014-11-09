@@ -156,7 +156,7 @@ public class TICPlot extends ChartPanel {
 		if (visualizer instanceof TICVisualizerWindow) {
 			this.plotType = ((TICVisualizerWindow) visualizer).getPlotType();
 		} else {
-			this.plotType = PlotType.TIC;
+			this.plotType = PlotType.BASEPEAK;
 		}
 
 		// Y-axis label.
