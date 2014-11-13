@@ -48,7 +48,7 @@ import net.sf.mzmine.util.Range;
 public abstract class BaselineCorrector implements BaselineProvider, MZmineModule {
 
 	// Logger.
-	private static final Logger LOG = Logger.getLogger(BaselineCorrectionTask.class.getName());
+	private static final Logger LOG = Logger.getLogger(BaselineCorrector.class.getName());
 
 	// Processing info storage
 	/**
@@ -74,13 +74,6 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 
 		// Processing info storage
 		progressMap = new HashMap<RawDataFile, int[]>();
-
-		// Check for R requirements
-		String missingPackage = checkRPackages(getRequiredRPackages());
-		if (missingPackage != null) {
-			throw new IllegalStateException("The \"" + missingPackage + "\" R package couldn't be loaded - is it installed in R?");
-		}
-
 	}
 
 	/**
@@ -187,7 +180,6 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 
 		} catch (Throwable t) {
 			LOG.log(Level.SEVERE, "Baseline correction error", t);
-			//LOG.log(Level.SEVERE, "Baseline correction error", ExceptionUtils.getStackTrace(t));
 		}
 
 		return correctedDataFile;
@@ -506,7 +498,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @param origDataFile dataFile of concern.
 	 * @return progress.
 	 */
-	public int getProgress(final RawDataFile origDataFile) {
+	private int getProgress(final RawDataFile origDataFile) {
 		if (progressMap.containsKey(origDataFile))
 			return progressMap.get(origDataFile)[0]; //progress;
 		else
@@ -517,11 +509,21 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @param origDataFile dataFile of concern.
 	 * @return progressMax.
 	 */
-	public int getProgressMax(final RawDataFile origDataFile) {
+	private int getProgressMax(final RawDataFile origDataFile) {
 		if (progressMap.containsKey(origDataFile))
 			return progressMap.get(origDataFile)[1]; //progressMax;
 		else
 			return 0;
+	}
+	/**
+	 * Getting global progress.
+	 * @param origDataFile dataFile of concern.
+	 * @return The finished percentage.
+	 */
+	public double getFinishedPercentage(final RawDataFile origDataFile) {
+		int progressMax = this.getProgressMax(origDataFile);
+		int progress = this.getProgress(origDataFile);
+		return (progressMax == 0 ? 0.0 : (double) progress / (double) progressMax);
 	}
 	/**
 	 * Releasing progress info.
@@ -544,7 +546,6 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @param abort If we shall abort
 	 */
 	public void setAbortProcessing(final RawDataFile origDataFile, boolean abort) {
-		//this.isAborted = abort;
 		if (progressMap.containsKey(origDataFile))
 			progressMap.get(origDataFile)[2] = 1;
 	}

@@ -42,7 +42,7 @@ import java.util.logging.Logger;
  * @version $Revision$
  * 
  * Deeply modified to delegate baseline correction to various correctors (whose implement specific
- * methods by them-selves). 
+ * methods by themselves). 
  * Those correctors all share a common behavior by inheriting from the base class "BaselineCorrector", 
  * and apply there specific way of building the baselines via the various algorithms implemented in
  * the sub-package "net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.correctors".
@@ -62,10 +62,7 @@ public class BaselineCorrectionTask extends AbstractTask {
 	// Baseline corrector processing step
 	private final MZmineProcessingStep<BaselineCorrector> baselineCorrectorProcStep;
 
-    // Progress counters.
-    private int progress;
-    private int progressMax;
-
+	
 	/**
 	 * Creates the task.
 	 *
@@ -101,9 +98,7 @@ public class BaselineCorrectionTask extends AbstractTask {
 
 	@Override
 	public double getFinishedPercentage() {
-		progressMax = baselineCorrectorProcStep.getModule().getProgressMax(origDataFile);
-		progress = baselineCorrectorProcStep.getModule().getProgress(origDataFile);
-		return progressMax == 0 ? 0.0 : (double) progress / (double) progressMax;
+		return baselineCorrectorProcStep.getModule().getFinishedPercentage(origDataFile);
 	}
 
 	@Override
@@ -116,9 +111,19 @@ public class BaselineCorrectionTask extends AbstractTask {
 
 		// Update the status of this task
 		setStatus(TaskStatus.PROCESSING);
-		this.baselineCorrectorProcStep.getModule().initProgress(origDataFile);
 
 		try {
+	
+			// Check for R requirements
+			String missingPackage = this.baselineCorrectorProcStep.getModule().checkRPackages(
+					this.baselineCorrectorProcStep.getModule().getRequiredRPackages());
+			if (missingPackage != null) {
+				String msg = "The \"" + this.baselineCorrectorProcStep.getModule().getName() + "\" requires " +
+						"the \"" + missingPackage + "\" R package, which couldn't be loaded - is it installed in R?";
+				throw new IllegalStateException(msg);
+			}
+			
+			this.baselineCorrectorProcStep.getModule().initProgress(origDataFile);
 			
 			final RawDataFile correctedDataFile = 
 					this.baselineCorrectorProcStep.getModule().correctDatafile(origDataFile, baselineCorrectorProcStep.getParameterSet());
@@ -140,12 +145,12 @@ public class BaselineCorrectionTask extends AbstractTask {
 
 				LOG.info("Baseline corrected " + origDataFile.getName());
 			}
-		}
-		catch (Throwable t) {
+			
+		} catch (Throwable t) {
 
 			LOG.log(Level.SEVERE, "Baseline correction error", t);
-			setStatus(TaskStatus.ERROR);
 			errorMessage = t.getMessage();
+			setStatus(TaskStatus.ERROR);
 		}
 		
 		this.baselineCorrectorProcStep.getModule().clearProgress(origDataFile);

@@ -150,7 +150,7 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 		pack();
 		setLocationRelativeTo(MZmineCore.getDesktop().getMainWindow());
 		
-		//previewCheckBox.setSelected(false);
+		previewCheckBox.setSelected(false);
 	}
 
 	public PlotType getPlotType() {

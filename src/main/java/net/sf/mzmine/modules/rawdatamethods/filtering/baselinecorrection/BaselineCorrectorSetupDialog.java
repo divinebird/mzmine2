@@ -27,9 +27,11 @@ import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
+import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
 import javax.swing.border.Border;
 
@@ -45,6 +47,10 @@ import net.sf.mzmine.modules.visualization.tic.TICDataSet;
 import net.sf.mzmine.modules.visualization.tic.TICPlot;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.parameters.dialogs.ParameterSetupDialogWithChromatogramPreview;
+import net.sf.mzmine.taskcontrol.AbstractTask;
+import net.sf.mzmine.taskcontrol.TaskEvent;
+import net.sf.mzmine.taskcontrol.TaskListener;
+import net.sf.mzmine.taskcontrol.TaskStatus;
 import net.sf.mzmine.util.Range;
 
 /**
@@ -55,15 +61,17 @@ import net.sf.mzmine.util.Range;
  * @author Gauthier Boaglio
  * @date Nov 6, 2014
  */
-public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChromatogramPreview  {
+public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChromatogramPreview
+implements TaskListener  {
 
 	// Logger.
-	private static final Logger LOG = Logger.getLogger(BaselineCorrectionTask.class.getName());
+	private static final Logger LOG = Logger.getLogger(
+			ParameterSetupDialogWithChromatogramPreview.class.getName());
 
 	private ParameterSet correctorParameters;
 	private BaselineCorrector baselineCorrector;
 
-	private PreviewThread previewThread = null;
+	private PreviewTask previewTask = null;
 	private JProgressBar progressBar;
 	private ProgressThread progressThread = null;
 
@@ -74,12 +82,7 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 		public void keyPressed(KeyEvent ke) {
 			int keyCode = ke.getKeyCode();
 			if (keyCode == KeyEvent.VK_ESCAPE) {
-				if (previewThread != null) { 
-					previewThread.kill(); 
-					previewThread = null; 
-				}
-				progressBar.setVisible(false);
-				hidePreview();
+				BaselineCorrectorSetupDialog.this.abortPreview();
 			}
 		}
 		@Override
@@ -99,7 +102,7 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 		}
 		return compList;
 	}
-	
+
 	private void set_VK_ESCAPE_KeyListener() {
 		// Set VK_ESCAPE KeyEvent listeners
 		List<Component> comps = BaselineCorrectorSetupDialog.getAllComponents(BaselineCorrectorSetupDialog.this);
@@ -141,7 +144,7 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 	}
 
 
-	class PreviewThread extends Thread {
+	class PreviewTask extends AbstractTask {
 
 		private TICPlot ticPlot;
 		private RawDataFile dataFile;
@@ -149,7 +152,7 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 		private Range mzRange;
 		private boolean crashed;
 
-		public PreviewThread(TICPlot ticPlot, RawDataFile dataFile, Range rtRange, Range mzRange) {
+		public PreviewTask(TICPlot ticPlot, RawDataFile dataFile, Range rtRange, Range mzRange) {
 			this.ticPlot = ticPlot;
 			this.dataFile = dataFile;
 			this.rtRange = rtRange;
@@ -160,9 +163,25 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 		@Override
 		public void run() {
 
+			// Update the status of this task
+			setStatus(TaskStatus.PROCESSING);
+
+			// Check for R requirements
+			String missingPackage = baselineCorrector.checkRPackages(baselineCorrector.getRequiredRPackages());
+			if (missingPackage != null) {
+				//					throw new IllegalStateException("The \"" + missingPackage + "\" R package couldn't be loaded - is it installed in R?");
+				String msg = "The \"" + baselineCorrector.getName() + "\" requires " +
+						"the \"" + missingPackage + "\" R package, which couldn't be loaded - is it installed in R?";
+				LOG.log(Level.SEVERE, "Baseline correction error", msg);
+				errorMessage = msg;
+				setStatus(TaskStatus.ERROR);
+			}
+
+
 			// Set VK_ESCAPE KeyEvent listeners
 			set_VK_ESCAPE_KeyListener();
 
+			// Reset TIC plot
 			ticPlot.removeAllTICDataSets();
 			ticPlot.setPlotType(getPlotType());
 
@@ -195,7 +214,6 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 			} catch (IllegalStateException e) {		// R computing error
 				e.printStackTrace();
 				this.crashed = true;
-				//baselineCorrector.initProgress(dataFile);
 			}
 
 			// Handle post-processing
@@ -225,6 +243,22 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 			}
 		}
 
+		/* (non-Javadoc)
+		 * @see net.sf.mzmine.taskcontrol.Task#getTaskDescription()
+		 */
+		@Override
+		public String getTaskDescription() {
+			return baselineCorrector.getName() + ": preview for file " + dataFile.getName();
+		}
+
+		/* (non-Javadoc)
+		 * @see net.sf.mzmine.taskcontrol.Task#getFinishedPercentage()
+		 */
+		@Override
+		public double getFinishedPercentage() {
+			return baselineCorrector.getFinishedPercentage(dataFile);
+		}
+
 	}
 
 	class ProgressThread extends Thread {
@@ -239,14 +273,12 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 		public void run() {
 
 			progressBar.setVisible(true);
-			int val = 0;
-			while (val < 100) 
+			double val = 0.0;
+			while (val < 1.0) 
 			{
-				if (previewThread != null && progressBar.isVisible()) {
-					int progressMax = baselineCorrector.getProgressMax(dataFile);
-					int progress = baselineCorrector.getProgress(dataFile);
-					val = (int) Math.round((progressMax == 0 ? 0.0 : 100.0 * (double) progress / (double) progressMax));
-					progressBar.setValue(val);
+				if (previewTask != null && progressBar.isVisible()) {
+					val = baselineCorrector.getFinishedPercentage(dataFile);
+					progressBar.setValue((int) Math.round(100.0 * val));
 				}
 			}
 			this.kill();
@@ -254,9 +286,9 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 
 		public void kill() {
 			// Kill preview processing
-			if (previewThread != null) { 
+			if (previewTask != null) { 
 				unset_VK_ESCAPE_KeyListener();
-				previewThread = null; 
+				previewTask = null; 
 			}
 			progressBar.setVisible(false);
 		}
@@ -290,16 +322,29 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 		baselineCorrector.initProgress(dataFile);
 
 		// Run process
-		if (previewThread == null || previewThread.getCrashed()) {
-			previewThread = new PreviewThread(ticPlot, dataFile, rtRange, mzRange);
-			previewThread.start();
-			
-			// Run progress
+		if (previewTask == null || previewTask.getCrashed()) {
+
+			previewTask = new PreviewTask(ticPlot, dataFile, rtRange, mzRange);
+			previewTask.addTaskListener(this);
+			new Thread(previewTask).start();
+
+			// Start progress bar
 			progressThread = new ProgressThread(dataFile);
 			progressThread.start();
 		}
 
 	}
+
+	private void abortPreview() {
+
+		if (previewTask != null) { 
+			previewTask.kill(); 
+			previewTask = null; 
+		}
+		progressBar.setVisible(false);
+		hidePreview();
+	}
+
 
 	/**
 	 * Quick way to recover the baseline plot (by subtracting the corrected file to the original one).
@@ -341,6 +386,17 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 		dataset.addSeries(bl_series);
 
 		return dataset;
+	}
+
+	/* (non-Javadoc)
+	 * @see net.sf.mzmine.taskcontrol.TaskListener#statusChanged(net.sf.mzmine.taskcontrol.TaskEvent)
+	 */
+	@Override
+	public void statusChanged(TaskEvent e) {
+		if (e.getStatus() == TaskStatus.ERROR) {
+			this.abortPreview();
+			JOptionPane.showMessageDialog(this, e.getSource().getErrorMessage(), "Error of preview task", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
 }
