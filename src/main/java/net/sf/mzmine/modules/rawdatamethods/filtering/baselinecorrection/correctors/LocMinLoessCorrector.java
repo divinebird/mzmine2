@@ -68,14 +68,15 @@ public class LocMinLoessCorrector extends BaselineCorrector {
 				// Set chromatogram.
 				rEngine.assign("chromatogram", chromatogram);
 				// Transform chromatogram.
-				int maxi = chromatogram.length;
 				int mini = 1;
+				int maxi = chromatogram.length;
 				rEngine.eval("mat = cbind(matrix(seq(" + ((double)mini) + ", " + ((double)maxi) + ", by = 1.0), ncol=1), " +
 						"matrix(chromatogram[" + mini + ":" + maxi + "], ncol=1))");
 				// Breaks
 				rEngine.eval("breaks <- " + ((breaks_width > 0) ? (int)Math.round((double)(maxi-mini)/(double)breaks_width) : breaks));
 				// Calculate baseline.
-				baseline = rEngine.eval("baseline <- bslnoff(mat, method=\"" + method + "\", bw=" + bw + ", breaks=breaks, qntl=" + qntl + ")[,2]").asDoubleArray();
+				rEngine.eval("bseoff <- bslnoff(mat, method=\"" + method + "\", bw=" + bw + ", breaks=breaks, qntl=" + qntl + ")");
+				baseline = rEngine.eval("mat[,2] - bseoff[,2]").asDoubleArray();
 			}
 			catch (Throwable t) {
 				throw new IllegalStateException("R error during baseline correction: ", t);
