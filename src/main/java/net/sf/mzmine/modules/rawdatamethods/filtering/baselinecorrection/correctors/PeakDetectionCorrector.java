@@ -38,7 +38,7 @@ import net.sf.mzmine.util.RUtilities;
  * @date Nov 6, 2014
  */
 public class PeakDetectionCorrector extends BaselineCorrector {
-	
+
 	@Override
 	public String[] getRequiredRPackages() {
 		return new String[] { "rJava", "baseline" };
@@ -77,18 +77,19 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 
 				// Calculate baseline.
 				rEngine.eval("bl = NULL");
-				// This method can fail for some bins when "useBins" is enabled
+				// This method can fail for some bins when "useBins" is enabled, or more generally speaking for
+				// abusive parameter set
 				String cmd = "tryCatch({" +
 						"bl = baseline(mat, left=" + left + ", right=" + right + 
 						", lwin=" + lwin + ", rwin=" + rwin + ", snminimum=" + snminimum + 
 						", mono=" + mono + ", multiplier=" + multiplier + ", method='peakDetection')" +
-					"}, warning = function(war) {" +
-					    "message(\"<R warning>: \", war);" +
-					"}, error = function(err) {" +
+						"}, warning = function(war) {" +
+						"message(\"<R warning>: \", war);" +
+						"}, error = function(err) {" +
 						"message(\"<R error>: \", err);" +
-					"}, finally = {" +
-					    //"" +
-					"})";
+						"}, finally = {" +
+						//"" +
+						"})";
 				rEngine.eval(cmd);
 				// Return a flat baseline (passing by the lowest intensity scan - "min(chromatogram)") in case of failure
 				// Anyway, this usually happens when "chromatogram" is fully flat and zeroed.
