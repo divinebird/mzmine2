@@ -36,7 +36,7 @@ import net.sf.mzmine.util.RUtilities;
  * @date Nov 6, 2014
  */
 public class RollingBallCorrector extends BaselineCorrector {
-	
+
 	@Override
 	public String[] getRequiredRPackages() {
 		return new String[] { "rJava", "baseline" };
@@ -67,8 +67,27 @@ public class RollingBallCorrector extends BaselineCorrector {
 				rEngine.assign("chromatogram", chromatogram);
 				// Transform chromatogram.
 				rEngine.eval("mat = matrix(chromatogram, nrow=1)");
+
 				// Calculate baseline.
-				baseline = rEngine.eval("getBaseline(baseline(mat, wm=" + wm + ", ws=" + ws + ", method='rollingBall'))").asDoubleArray();
+				rEngine.eval("bl = NULL");
+				// This method can fail for some bins when "useBins" is enabled, or more generally speaking for
+				// abusive parameter set
+				String cmd = "tryCatch({" +
+						"bl = baseline(mat, wm=" + wm + ", ws=" + ws + ", method='rollingBall')" +
+						"}, warning = function(war) {" +
+						"message(\"<R warning>: \", war);" +
+						"}, error = function(err) {" +
+						"message(\"<R error>: \", err);" +
+						"}, finally = {" +
+						//"" +
+						"})";
+				rEngine.eval(cmd);
+				// Return a flat baseline (passing by the lowest intensity scan - "min(chromatogram)") in case of failure
+				// Anyway, this usually happens when "chromatogram" is fully flat and zeroed.
+				baseline = rEngine.eval(
+						"if (!is.null(bl)) { getBaseline(bl); } else { matrix(rep(min(chromatogram), length(chromatogram)), nrow=1); }"
+						).asDoubleArray();
+
 			}
 			catch (Throwable t) {
 				throw new IllegalStateException("R error during baseline correction: ", t);
