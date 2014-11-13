@@ -78,7 +78,7 @@ public class BaselineCorrectionParameters extends SimpleParameterSet {
 		new AsymmetryCorrector(),		// (Package R "ptw"				- http://cran.r-project.org/web/packages/ptw/ptw.pdf)
 		new RollingBallCorrector(),		// (Package R "baseline"		- http://cran.r-project.org/web/packages/baseline/baseline.pdf)
 		new PeakDetectionCorrector(), 	// (Package R "baseline" 		- http://cran.r-project.org/web/packages/baseline/baseline.pdf)
-		new RubberBandCorrector(),  	// (Package R "hyperSpec" 		- http://cran.r-project.org/web/packages/hyperSpec/vignettes/introduction.pdf)
+		new RubberBandCorrector(),  	// (Package R "hyperSpec" 		- http://cran.r-project.org/web/packages/hyperSpec/vignettes/baseline.pdf)
 		new LocMinLoessCorrector()		// (Package R/Bioc. "PROcess" 	- http://bioconductor.org/packages/release/bioc/manuals/PROcess/man/PROcess.pdf)
 	};
 
