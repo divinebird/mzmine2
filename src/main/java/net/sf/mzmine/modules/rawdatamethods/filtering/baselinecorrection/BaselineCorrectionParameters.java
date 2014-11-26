@@ -41,6 +41,7 @@ import net.sf.mzmine.parameters.parametertypes.ModuleComboParameter;
 import net.sf.mzmine.parameters.parametertypes.RawDataFilesParameter;
 import net.sf.mzmine.parameters.parametertypes.StringParameter;
 import net.sf.mzmine.util.ExitCode;
+import net.sf.mzmine.util.RSession.RengineType;
 
 /**
  * Holds baseline correction module COMMON parameters.
@@ -63,6 +64,14 @@ public class BaselineCorrectionParameters extends SimpleParameterSet {
 			"Filename suffix", "Suffix to be appended to raw data file names.",
 			"baseline-corrected");
 
+	/**
+	 * R engine type.
+	 */
+	public static final ComboParameter<RengineType> RENGINE_TYPE = new ComboParameter<RengineType>(
+			"R engine type",
+			"The type of R engine to be used for computing.",
+			RengineType.values(), RengineType.Rserve);
+	
 	/**
 	 * Chromatogram type.
 	 */
@@ -119,7 +128,9 @@ public class BaselineCorrectionParameters extends SimpleParameterSet {
 	 * Create the parameter set.
 	 */
 	public BaselineCorrectionParameters() {
-		super(new Parameter[] { dataFiles, SUFFIX, CHROMOTAGRAM_TYPE, MS_LEVEL,
+		super(new Parameter[] { dataFiles, SUFFIX, 
+				RENGINE_TYPE,
+				CHROMOTAGRAM_TYPE, MS_LEVEL,
 				USE_MZ_BINS, MZ_BIN_WIDTH,
 				BASELINE_CORRECTORS,
 				REMOVE_ORIGINAL });

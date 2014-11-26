@@ -21,10 +21,10 @@ package net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.correc
 
 import javax.annotation.Nonnull;
 
-import org.rosuda.JRI.Rengine;
-
+import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrector;
 import net.sf.mzmine.parameters.ParameterSet;
+import net.sf.mzmine.util.RSession;
 import net.sf.mzmine.util.RUtilities;
 
 /**
@@ -41,11 +41,11 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "rJava", "baseline" };
+		return new String[] { "rJava", "Rserve", "baseline" };
 	}
 
 	@Override
-	public double[] computeBaseline(double[] chromatogram, ParameterSet parameters) {
+	public double[] computeBaseline(final RSession rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) {
 
 		// Peak Detection parameters.
 		int left = parameters.getParameter(PeakDetectionCorrectorParameters.LEFT).getValue();
@@ -56,27 +56,18 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 		double mono = parameters.getParameter(PeakDetectionCorrectorParameters.MONO).getValue();
 		double multiplier = parameters.getParameter(PeakDetectionCorrectorParameters.MULTIPLIER).getValue();
 
-		// Get R engine.
-		final Rengine rEngine;
-		try {
-			rEngine = RUtilities.getREngine();
-		}
-		catch (Throwable t) {
-			throw new IllegalStateException(
-					"Baseline correction requires R but it couldn't be loaded (" + t.getMessage() + ')');
-		}
 
 		final double[] baseline;
 		synchronized (RUtilities.R_SEMAPHORE) {
 
 			try {
 				// Set chromatogram.
-				rEngine.assign("chromatogram", chromatogram);
+				rSession.assignDoubleArray("chromatogram", chromatogram);
 				// Transform chromatogram.
-				rEngine.eval("mat = matrix(chromatogram, nrow=1)");
+				rSession.eval("mat = matrix(chromatogram, nrow=1)");
 
 				// Calculate baseline.
-				rEngine.eval("bl = NULL");
+				rSession.eval("bl = NULL");
 				// This method can fail for some bins when "useBins" is enabled, or more generally speaking for
 				// abusive parameter set
 				String cmd = "tryCatch({" +
@@ -90,15 +81,16 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 						"}, finally = {" +
 						//"" +
 						"})";
-				rEngine.eval(cmd);
+				rSession.eval(cmd);
 				// Return a flat baseline (passing by the lowest intensity scan - "min(chromatogram)") in case of failure
 				// Anyway, this usually happens when "chromatogram" is fully flat and zeroed.
-				baseline = rEngine.eval(
-						"if (!is.null(bl)) { getBaseline(bl); } else { matrix(rep(min(chromatogram), length(chromatogram)), nrow=1); }"
-						).asDoubleArray();
+				rSession.eval(
+						"if (!is.null(bl)) { baseline <- getBaseline(bl); } else { baseline <- matrix(rep(min(chromatogram), length(chromatogram)), nrow=1); }"
+						);
+				baseline = rSession.collectDoubleArray("baseline");
 			}
 			catch (Throwable t) {
-				throw new IllegalStateException("R error during baseline correction: ", t);
+				throw new IllegalStateException("R error during baseline correction.", t);
 			}
 		}
 		return baseline;

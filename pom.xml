@@ -380,6 +380,8 @@
 			<artifactId>chemspider-api</artifactId>
 			<version>1.0</version>
 		</dependency>
+
+<!-- rJava: JRI -->
 		<dependency>
 			<groupId>rJava</groupId>
 			<artifactId>JRI</artifactId>
@@ -395,6 +397,19 @@
 			<artifactId>REngine</artifactId>
 			<version>0.9.3</version>
 		</dependency>
+<!-- rosuda: REngine/Rserve -->
+		<dependency> 
+			<groupId>org.nuiton.thirdparty</groupId>
+			<artifactId>REngine</artifactId>
+			<version>1.7-3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.nuiton.thirdparty</groupId>
+			<artifactId>Rserve</artifactId>
+			<version>1.7-3</version>
+		</dependency>
+
+
 		<dependency>
 			<groupId>mzmine</groupId>
 			<artifactId>macspecificsetup</artifactId>
@@ -428,7 +443,20 @@
             <version>1.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-
+        
+<!-- No more used ??
+		<dependency>
+			<groupId>Rsession</groupId>
+			<artifactId>Rsession</artifactId>
+			<version>0.6</version>
+		</dependency>
+-->
+		<!-- To be removed soon: Rserve does the job well -->
+		<dependency>
+			<groupId>RCaller</groupId>
+			<artifactId>RCaller</artifactId>
+			<version>2.4-SNAPSHOT</version>
+		</dependency>
 
 	</dependencies>
 

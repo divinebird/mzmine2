@@ -21,10 +21,7 @@ package net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.rosuda.JRI.Rengine;
 
 import net.sf.mzmine.datamodel.DataPoint;
 import net.sf.mzmine.datamodel.RawDataFile;
@@ -35,8 +32,9 @@ import net.sf.mzmine.datamodel.impl.SimpleScan;
 import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.modules.MZmineModule;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RUtilities;
+import net.sf.mzmine.util.RSession;
 import net.sf.mzmine.util.Range;
+import net.sf.mzmine.util.RSession.RengineType;
 
 /**
  * @description Abstract corrector class for baseline correction. Has to be specialized via the
@@ -48,7 +46,7 @@ import net.sf.mzmine.util.Range;
 public abstract class BaselineCorrector implements BaselineProvider, MZmineModule {
 
 	// Logger.
-	private static final Logger LOG = Logger.getLogger(BaselineCorrector.class.getName());
+	protected static final Logger LOG = Logger.getLogger(BaselineCorrector.class.getName());
 
 	// Processing info storage
 	/**
@@ -61,10 +59,11 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	private String suffix;
 
 	// General parameters (common to all baseline correction methods).
+//	private RengineType engineType;
+	private ChromatogramType chromatogramType;
 	private double binWidth;
 	private boolean useBins;
 	private int msLevel;
-	private ChromatogramType chromatogramType;
 
 
 	/**
@@ -83,34 +82,46 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	public void setGeneralParameters(final ParameterSet generalParameters) {
 		// Get common parameters.
 		suffix = generalParameters.getParameter(BaselineCorrectionParameters.SUFFIX).getValue();
+//		engineType = generalParameters.getParameter(BaselineCorrectionParameters.RENGINE_TYPE).getValue();
+		chromatogramType = generalParameters.getParameter(BaselineCorrectionParameters.CHROMOTAGRAM_TYPE).getValue();
 		binWidth = generalParameters.getParameter(BaselineCorrectionParameters.MZ_BIN_WIDTH).getValue();
 		useBins = generalParameters.getParameter(BaselineCorrectionParameters.USE_MZ_BINS).getValue();
 		msLevel = generalParameters.getParameter(BaselineCorrectionParameters.MS_LEVEL).getValue();
-		chromatogramType = generalParameters.getParameter(BaselineCorrectionParameters.CHROMOTAGRAM_TYPE).getValue();
 	}
 
-	/**
-	 * Try loading packages required by this instance of baseline corrector.
-	 * Gives a name if anything went wrong.
-	 * @param packages List of required packages.
-	 * @return The name of the first failing one, or null if everything went right.
-	 */
-	public String checkRPackages(String[] packages) {
-		// Get R engine.
-		try {
-			final Rengine rEngine = RUtilities.getREngine();
-			// Check required packages.
-			for (int i=0; i < packages.length; ++i)
-				if (rEngine.eval("require(" + packages[i] + ")").asBool().isFALSE()) return packages[i];
-			return null;
-		}
-		catch (Throwable t) {
-			throw new IllegalStateException(
-					"Baseline correction requires R but it couldn't be loaded (" + t.getMessage() + ')');
-		}
-	}
+//	/**
+//	 * Try loading packages required by this instance of baseline corrector.
+//	 * Gives a name if anything went wrong.
+//	 * @param packages List of required packages.
+//	 * @return The name of the first failing one, or null if everything went right.
+//	 */
+//	public String checkRPackages(String[] packages) {			
+//
+//		RSession rs = new RSession(RengineType.JRIengine, packages);
+//		String missingPackage = null;
+//		missingPackage = rs.loadRequiredPackages();
+//		if (missingPackage != null) {
+//			String msg = "The \"" + this.getName() + "\" requires " +
+//					"the \"" + missingPackage + "\" R package, which couldn't be loaded - is it installed in R?";
+//			throw new IllegalStateException(msg);
+//		}
+//
+//		String reqPackage = null;
+//			try {
+//				for (int i=0; i < packages.length; i++) {
+//					reqPackage = packages[i];
+//					RUtilities.checkPackage(packages[i]);
+//				}
+//				return null;
+//			} catch (Exception e) {
+//				return reqPackage;
+//			}
+//
+//	}
 
-	public final RawDataFile correctDatafile(RawDataFile dataFile, ParameterSet parameters) throws IOException
+
+	public final RawDataFile correctDatafile(final RSession rSession, final RawDataFile dataFile, final ParameterSet parameters) 
+			throws IOException
 	{
 		// Get very last information from root module setup
 		this.setGeneralParameters(MZmineCore.getConfiguration().getModuleParameters(BaselineCorrectionModule.class));
@@ -160,9 +171,9 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 
 						// Correct baseline for this MS-level.
 						if (useTIC) {
-							correctTICBaselines(origDataFile, rawDataFileWriter, level, numBins, parameters);
+							correctTICBaselines(rSession, origDataFile, rawDataFileWriter, level, numBins, parameters);
 						} else {
-							correctBasePeakBaselines(origDataFile, rawDataFileWriter, level, numBins, parameters);
+							correctBasePeakBaselines(rSession, origDataFile, rawDataFileWriter, level, numBins, parameters);
 						}
 					} else {
 
@@ -178,9 +189,19 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 				correctedDataFile = rawDataFileWriter.finishWriting();
 			}
 
-		} catch (Throwable t) {
-			LOG.log(Level.SEVERE, "Baseline correction error", t);
 		}
+		catch (Throwable t) {
+
+//			if (t instanceof RserveException) {
+//				throw new BaselineCorrectionException("R error during baseline correction: ", t);
+//			} else {
+				t.printStackTrace();
+				throw new IllegalStateException("Unhandled error during baseline correction.", t);			
+//			}
+
+		}
+
+		//if (this.rConnection != null) { this.rConnection.close(); }
 
 		return correctedDataFile;
 	}
@@ -235,8 +256,10 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @param numBins      number of m/z bins.
 	 * @param parameters   parameters specific to the actual method for baseline computing.
 	 * @throws IOException if there are i/o problems.
+	 * @throws BaselineCorrectionException 
+	 * @throws InterruptedException 
 	 */
-	private void correctBasePeakBaselines(final RawDataFile origDataFile, 
+	private void correctBasePeakBaselines(final RSession rSession, final RawDataFile origDataFile, 
 			final RawDataFileWriter writer, final int level, final int numBins, final ParameterSet parameters)
 					throws IOException {
 
@@ -251,7 +274,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 		// Calculate baselines: done in-place, i.e. overwrite chromatograms to save memory.
 		LOG.finest("Calculating baselines.");
 		for (int binIndex = 0; !isAborted(origDataFile) && binIndex < numBins; binIndex++) {
-			baseChrom[binIndex] = computeBaseline(baseChrom[binIndex], parameters);
+			baseChrom[binIndex] = computeBaseline(rSession, origDataFile, baseChrom[binIndex], parameters);
 			progressMap.get(origDataFile)[0]++;
 		}
 
@@ -282,8 +305,10 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @param numBins      number of m/z bins.
 	 * @param parameters   parameters specific to the actual method for baseline computing.
 	 * @throws IOException if there are i/o problems.
+	 * @throws BaselineCorrectionException 
 	 */
-	private void correctTICBaselines(final RawDataFile origDataFile, final RawDataFileWriter writer, final int level, final int numBins, final ParameterSet parameters)
+	private void correctTICBaselines(final RSession rSession, final RawDataFile origDataFile, 
+			final RawDataFileWriter writer, final int level, final int numBins, final ParameterSet parameters)
 			throws IOException {
 
 		// Get scan numbers from original file.
@@ -300,11 +325,11 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 
 			// Calculate baseline.
 			//final double[] baseline = asymBaseline(baseChrom[binIndex]);
-			final double[] baseline = computeBaseline(baseChrom[binIndex], parameters);
+			final double[] baseline = computeBaseline(rSession, origDataFile, baseChrom[binIndex], parameters);
 
 
 			// Normalize the baseline w.r.t. chromatogram (TIC).
-			for (int scanIndex = 0; scanIndex < numScans; scanIndex++) {
+			for (int scanIndex = 0; !isAborted(origDataFile) && scanIndex < numScans; scanIndex++) {
 				final double bc = baseChrom[binIndex][scanIndex];
 				if (bc != 0.0) {
 					baseChrom[binIndex][scanIndex] = baseline[scanIndex] / bc;
@@ -533,6 +558,11 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 		progressMap.remove(origDataFile);
 	}
 
+	// R engine type
+	public RengineType getRengineType() {
+		return MZmineCore.getConfiguration().getModuleParameters(BaselineCorrectionModule.class)
+				.getParameter(BaselineCorrectionParameters.RENGINE_TYPE).getValue();
+	}
 	// Chromatogram type
 	public ChromatogramType getChromatogramType() {
 		return MZmineCore.getConfiguration().getModuleParameters(BaselineCorrectionModule.class)
@@ -554,7 +584,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @param origDataFile dataFile of concern.
 	 * @return True if it has.
 	 */
-	private boolean isAborted(final RawDataFile origDataFile) {
+	protected boolean isAborted(final RawDataFile origDataFile) {
 		if (progressMap.containsKey(origDataFile))
 			return (progressMap.get(origDataFile)[2] == 1);
 		else

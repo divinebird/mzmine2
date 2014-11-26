@@ -47,7 +47,7 @@ public class AsymmetryCorrectorParameters extends SimpleParameterSet {
 	 */
 	public static final DoubleParameter ASYMMETRY = new DoubleParameter(
 			"Asymmetry",
-			"The weight (0 <= p <= 1) for points above the trend line, whereas 1-p is the weight for points below it.  Naturally, p should be small for estimating baselines.",
+			"The weight (0 <= p <= 1) for points above the trend line, whereas 1-p is the weight for points below it. Naturally, p should be small for estimating baselines.",
 			DecimalFormat.getNumberInstance(), 0.001, 0.0, 1.0);
 
 

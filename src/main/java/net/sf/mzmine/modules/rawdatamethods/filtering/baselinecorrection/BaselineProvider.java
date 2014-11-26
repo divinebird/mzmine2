@@ -19,7 +19,11 @@
 
 package net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection;
 
+import org.rosuda.REngine.Rserve.RserveException;
+
+import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.parameters.ParameterSet;
+import net.sf.mzmine.util.RSession;
 
 /**
  * @description Base interface for providing a new way for computing baselines.
@@ -28,15 +32,19 @@ import net.sf.mzmine.parameters.ParameterSet;
  * @date Nov 6, 2014
  */
 public interface BaselineProvider {
-	
-    /**
-     * Gets R required packages for the corrector's method, if applicable
-     */
+
+	/**
+	 * Gets R required packages for the corrector's method, if applicable
+	 */
 	public String[] getRequiredRPackages();
 
 	/**
-     * Returns a baseline for correcting the given chromatogram using R
-     */
-	public double[] computeBaseline(final double[] chromatogram, ParameterSet parameters);
-	
+	 * Returns a baseline for correcting the given chromatogram using R
+	 * @throws BaselineCorrectionException 
+	 * @throws RserveException 
+	 * @throws InterruptedException 
+	 */
+	public double[] computeBaseline(final RSession rSession, final RawDataFile origDataFile, 
+			final double[] chromatogram, ParameterSet parameters);
+
 }

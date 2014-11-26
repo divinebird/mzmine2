@@ -62,10 +62,11 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 	
 	
 	// Show as TIC
-	private JCheckBox ticViewCheckBox;
+	private JComboBox ticViewComboBox;
 
 	// XYPlot
 	private TICPlot ticPlot;
+	
 
 	public ParameterSetupDialogWithChromatogramPreview(ParameterSet parameters) {
 		super(parameters);
@@ -102,7 +103,7 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 		Object src = event.getSource();
 		
 		// Avoid calling twice "parametersChanged()" for the widgets specific to this inherited dialog class
-		if (src != comboDataFileName && src != previewCheckBox && src != ticViewCheckBox) { 
+		if (src != comboDataFileName && src != previewCheckBox && src != ticViewComboBox) { 
 			super.actionPerformed(event); 
 		}
 
@@ -123,7 +124,7 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 			}
 		}
 		
-		if (src == ticViewCheckBox) {
+		if (src == ticViewComboBox) {
 			parametersChanged();
 		}
 
@@ -154,16 +155,19 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 	}
 
 	public PlotType getPlotType() {
-		return (ticViewCheckBox.isSelected() ? PlotType.TIC : PlotType.BASEPEAK);
+		return (PlotType) (ticViewComboBox.getSelectedItem());
 	}
 
 	public void setPlotType(PlotType plotType) {
-		ticViewCheckBox.setSelected((plotType == PlotType.TIC));
+		ticViewComboBox.setSelectedItem(plotType);
 	}
 
 	public RawDataFile getPreviewDataFile() {
 		return this.previewDataFile;
 	}
+//	public boolean isPreviewCheckBoxSelected() {
+//		return this.previewCheckBox.isSelected();
+//	}
 
 	protected void parametersChanged() {
 
@@ -216,10 +220,13 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 		pnlLab.setLayout(new BoxLayout(pnlLab, BoxLayout.Y_AXIS));
 		pnlLab.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
+		pnlLab.add(Box.createVerticalStrut(5));
 		pnlLab.add(new JLabel("Data file "));
-		pnlLab.add(Box.createVerticalStrut(30));
-		pnlLab.add(new JLabel("RT range "));
+		pnlLab.add(Box.createVerticalStrut(20));
+		pnlLab.add(new JLabel("Plot Type "));
 		pnlLab.add(Box.createVerticalStrut(25));
+		pnlLab.add(new JLabel("RT range "));
+		pnlLab.add(Box.createVerticalStrut(15));
 		pnlLab.add(new JLabel("m/z range "));
 
 		// Elements of pnlFlds
@@ -231,10 +238,9 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 		comboDataFileName.setSelectedItem(previewDataFile);
 		comboDataFileName.addActionListener(this);
 		
-		ticViewCheckBox = new JCheckBox("TIC (Total ion intensity) view");
-		ticViewCheckBox.setSelected(false);
-		ticViewCheckBox.addActionListener(this);
-		ticViewCheckBox.setHorizontalAlignment(SwingConstants.CENTER);
+		ticViewComboBox = new JComboBox(PlotType.values());
+		ticViewComboBox.setSelectedItem(PlotType.TIC);
+		ticViewComboBox.addActionListener(this);
 
 		rtRangeBox = new RangeComponent(MZmineCore.getConfiguration()
 				.getRTFormat());
@@ -245,9 +251,11 @@ public abstract class ParameterSetupDialogWithChromatogramPreview extends Parame
 		mzRangeBox.setValue(previewDataFile.getDataMZRange(1));
 
 		pnlFlds.add(comboDataFileName);
-		pnlFlds.add(ticViewCheckBox);
 		pnlFlds.add(Box.createVerticalStrut(10));
+		pnlFlds.add(ticViewComboBox);
+		pnlFlds.add(Box.createVerticalStrut(20));
 		pnlFlds.add(rtRangeBox);
+		pnlFlds.add(Box.createVerticalStrut(5));
 		pnlFlds.add(mzRangeBox);
 
 		// Put all together

@@ -31,17 +31,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
-import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
-
-import org.jfree.data.xy.XYDataset;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
 
 import net.sf.mzmine.datamodel.DataPoint;
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.datamodel.Scan;
+import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.modules.visualization.tic.PlotType;
 import net.sf.mzmine.modules.visualization.tic.TICDataSet;
 import net.sf.mzmine.modules.visualization.tic.TICPlot;
@@ -51,18 +48,26 @@ import net.sf.mzmine.taskcontrol.AbstractTask;
 import net.sf.mzmine.taskcontrol.TaskEvent;
 import net.sf.mzmine.taskcontrol.TaskListener;
 import net.sf.mzmine.taskcontrol.TaskStatus;
+import net.sf.mzmine.util.RSession;
 import net.sf.mzmine.util.Range;
+import net.sf.mzmine.util.RSession.RengineType;
+
+import org.jfree.data.xy.XYDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+
+
 
 /**
  * @description This class extends ParameterSetupDialogWithChromatogramPreview class. 
- * This is used to preview how the selected baseline correction method and his parameters 
+ * This is used to preview how the selected baseline correction method and its parameters 
  * works over the raw data file.
  * 
  * @author Gauthier Boaglio
  * @date Nov 6, 2014
  */
 public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChromatogramPreview
-implements TaskListener  {
+implements TaskListener {
 
 	// Logger.
 	private static final Logger LOG = Logger.getLogger(
@@ -72,17 +77,22 @@ implements TaskListener  {
 	private BaselineCorrector baselineCorrector;
 
 	private PreviewTask previewTask = null;
-	private JProgressBar progressBar;
-	private ProgressThread progressThread = null;
+	private Thread previewThread = null;
+
 
 	// Listen to VK_ESCAPE KeyEvent and allow to abort preview computing 
 	// if input parameters gave a computation task that is about to take forever...
 	KeyListener keyListener = new KeyListener() {
 		@Override
 		public void keyPressed(KeyEvent ke) {
+						
 			int keyCode = ke.getKeyCode();
 			if (keyCode == KeyEvent.VK_ESCAPE) {
-				BaselineCorrectorSetupDialog.this.abortPreview();
+
+				LOG.info("<ESC> Presssed.");				
+				previewTask.kill();
+				hidePreview();
+				
 			}
 		}
 		@Override
@@ -140,7 +150,6 @@ implements TaskListener  {
 		this.setPlotType( (this.baselineCorrector.getChromatogramType() == ChromatogramType.TIC) ? 
 				PlotType.TIC : PlotType.BASEPEAK );
 
-
 	}
 
 
@@ -150,14 +159,32 @@ implements TaskListener  {
 		private RawDataFile dataFile;
 		private	Range rtRange;
 		private Range mzRange;
-		private boolean crashed;
+		private BaselineCorrectorSetupDialog dialog;
+		private ProgressThread progressThread;
 
-		public PreviewTask(TICPlot ticPlot, RawDataFile dataFile, Range rtRange, Range mzRange) {
+		private RSession rSession;
+		
+		private boolean userCanceled;
+
+
+		public PreviewTask(BaselineCorrectorSetupDialog dialog, TICPlot ticPlot, RawDataFile dataFile, Range rtRange, Range mzRange) {
+			
+			this.dialog = dialog;
 			this.ticPlot = ticPlot;
 			this.dataFile = dataFile;
 			this.rtRange = rtRange;
 			this.mzRange = mzRange;
-			this.crashed = false;
+			
+			this.userCanceled = false;
+			
+			this.addTaskListener(dialog);
+		}
+
+		public RawDataFile getDataFile() {
+			return this.dataFile;
+		}
+		public RengineType getRengineType() {
+			return this.rSession.getRengineType();
 		}
 
 		@Override
@@ -166,15 +193,31 @@ implements TaskListener  {
 			// Update the status of this task
 			setStatus(TaskStatus.PROCESSING);
 
-			// Check for R requirements
-			String missingPackage = baselineCorrector.checkRPackages(baselineCorrector.getRequiredRPackages());
+			// Check R availability, by trying to open the connection
+			try {
+				String[] reqPackages = baselineCorrector.getRequiredRPackages();
+				this.rSession = new RSession(baselineCorrector.getRengineType(), reqPackages);
+				this.rSession.open();
+			}
+			catch (Throwable t) {
+				String msg = t.getMessage();
+				LOG.log(Level.SEVERE, "Baseline correction error", msg);
+				errorMessage = msg;
+				setStatus(TaskStatus.ERROR);
+				this.rSession = null;
+				return;
+			}
+
+			// Check & load required R packages
+			String missingPackage = null;
+			missingPackage = this.rSession.loadRequiredPackages();
 			if (missingPackage != null) {
-				//					throw new IllegalStateException("The \"" + missingPackage + "\" R package couldn't be loaded - is it installed in R?");
 				String msg = "The \"" + baselineCorrector.getName() + "\" requires " +
 						"the \"" + missingPackage + "\" R package, which couldn't be loaded - is it installed in R?";
 				LOG.log(Level.SEVERE, "Baseline correction error", msg);
 				errorMessage = msg;
 				setStatus(TaskStatus.ERROR);
+				return;
 			}
 
 
@@ -190,10 +233,15 @@ implements TaskListener  {
 			TICDataSet ticDataset = new TICDataSet(dataFile, scanNumbers, mzRange, null, getPlotType());
 			ticPlot.addTICDataset(ticDataset);
 
-			this.crashed = true;
 			try {
+
+				// Start progress bar
+				baselineCorrector.initProgress(dataFile);
+				progressThread = new ProgressThread(this.dialog, this, dataFile);
+				progressThread.start();
+
 				// Create a new corrected raw data file
-				RawDataFile newDataFile = baselineCorrector.correctDatafile(dataFile, correctorParameters);
+				RawDataFile newDataFile = baselineCorrector.correctDatafile(this.rSession, dataFile, correctorParameters);
 
 				// If successful, add the new data file
 				if (newDataFile != null) {
@@ -204,43 +252,42 @@ implements TaskListener  {
 					// Show the trend line as well
 					XYDataset tlDataset = createBaselineDataset(dataFile, newDataFile, getPlotType());
 					ticPlot.addTICDataset(tlDataset);
-
-					this.crashed = false;
 				}
 			} catch (IOException e) {				// Writing error
 				e.printStackTrace();
-				this.crashed = true;
 				//baselineCorrector.initProgress(dataFile);
 			} catch (IllegalStateException e) {		// R computing error
-				e.printStackTrace();
-				this.crashed = true;
+				if (!this.userCanceled)
+					e.printStackTrace();
 			}
 
-			// Handle post-processing
-			if (!this.crashed) {
-				// If processing went fine: Restore "parametersChanged" listeners
-				unset_VK_ESCAPE_KeyListener();
-				// And remove temporary file
-				dataFile = null;
-			} else {
-				// If processing went wrong: Stop all & prepare for next attempt
-				baselineCorrector.setAbortProcessing(dataFile, true);
-				baselineCorrector.initProgress(dataFile);
-			}
+			// Task is over: Restore "parametersChanged" listeners
+			unset_VK_ESCAPE_KeyListener();
 
-		}
-
-		public boolean getCrashed() {
-			return this.crashed;
+			// We're done!
+			setStatus(TaskStatus.FINISHED);
 		}
 
 		public void kill() {
+
 			RawDataFile dataFile = getPreviewDataFile();
 			if (baselineCorrector != null && dataFile != null) { 
-				// Abort current process
-				baselineCorrector.setAbortProcessing(dataFile, true); 
-				unset_VK_ESCAPE_KeyListener();
+
+					this.userCanceled = true;
+				
+					// Turn off R instance
+					this.rSession.close(true);
+				
+					// Cancel task
+					this.cancel();
+					// Release "ESC" listener
+					unset_VK_ESCAPE_KeyListener();
+					// Abort current processing thread
+					baselineCorrector.setAbortProcessing(dataFile, true); 
+					
+					LOG.info("Preview task canceled!");
 			}
+
 		}
 
 		/* (non-Javadoc)
@@ -259,59 +306,68 @@ implements TaskListener  {
 			return baselineCorrector.getFinishedPercentage(dataFile);
 		}
 
+
 	}
 
 	class ProgressThread extends Thread {
 
 		private RawDataFile dataFile;
+		private PreviewTask previewTask;
+		private BaselineCorrectorSetupDialog dialog;
+		private JProgressBar progressBar;
 
-		public ProgressThread(RawDataFile dataFile) {
+		public ProgressThread(BaselineCorrectorSetupDialog dialog, PreviewTask previewTask, RawDataFile dataFile) {
+			this.previewTask = previewTask;
 			this.dataFile = dataFile;
+			this.dialog = dialog;
 		}
 
 		@Override
 		public void run() {
 
-			progressBar.setVisible(true);
-			double val = 0.0;
-			while (val < 1.0) 
+			addProgessBar();
+			while ((this.previewTask != null && this.previewTask.getStatus() == TaskStatus.PROCESSING)) 
 			{
-				if (previewTask != null && progressBar.isVisible()) {
-					val = baselineCorrector.getFinishedPercentage(dataFile);
-					progressBar.setValue((int) Math.round(100.0 * val));
+
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						progressBar.setValue( (int) Math.round(100.0 * baselineCorrector.getFinishedPercentage(dataFile)) );
+					}
+				});
+				try {
+					Thread.sleep(5);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
-			this.kill();
+			// Clear GUI stuffs
+			removeProgessBar();
+			unset_VK_ESCAPE_KeyListener();
 		}
 
-		public void kill() {
-			// Kill preview processing
-			if (previewTask != null) { 
-				unset_VK_ESCAPE_KeyListener();
-				previewTask = null; 
-			}
+
+		private void addProgessBar() {
+			// Add progress bar
+			progressBar = new JProgressBar();
+			progressBar.setValue(25);
+			progressBar.setStringPainted(true);
+			Border border = BorderFactory.createTitledBorder("Processing...     <Press \"ESC\" to cancel>    ");
+			progressBar.setBorder(border);
+			this.dialog.add(progressBar, BorderLayout.NORTH);
+			//			this.dialog.repaint();
+			progressBar.setVisible(true);
+			this.dialog.pack();
+		}
+		private void removeProgessBar() {
+			// Remove progress bar
 			progressBar.setVisible(false);
+			this.dialog.remove(progressBar);
+			this.dialog.pack();
 		}
+
 	}
 
-
-	/**
-	 * This function add all the additional components for this dialog over the
-	 * original ParameterSetupDialogWithChromatogramPreview.
-	 */
-	@Override
-	protected void addDialogComponents() {
-
-		super.addDialogComponents();
-
-		progressBar = new JProgressBar();
-		progressBar.setValue(25);
-		progressBar.setStringPainted(true);
-		Border border = BorderFactory.createTitledBorder("Processing...     <Press \"ESC\" to cancel>    ");
-		progressBar.setBorder(border);
-		this.add(progressBar, BorderLayout.NORTH);
-		progressBar.setVisible(false);
-	}
 
 	/**
 	 * This function sets all the information into the plot chart
@@ -319,38 +375,37 @@ implements TaskListener  {
 	@Override
 	protected void loadPreview(TICPlot ticPlot, RawDataFile dataFile, Range rtRange, Range mzRange) {
 
-		baselineCorrector.initProgress(dataFile);
-
-		// Run process
-		if (previewTask == null || previewTask.getCrashed()) {
-
-			previewTask = new PreviewTask(ticPlot, dataFile, rtRange, mzRange);
-			previewTask.addTaskListener(this);
-			new Thread(previewTask).start();
-
-			// Start progress bar
-			progressThread = new ProgressThread(dataFile);
-			progressThread.start();
+		boolean ready = true;
+		// Abort previous preview task. 
+		if (previewTask != null && previewTask.getStatus() == TaskStatus.PROCESSING) {
+			ready = false;
+			previewTask.kill();
+			try {
+				previewThread.join();
+				ready = true;
+			} catch (InterruptedException e) {
+				ready = false;
+			}
 		}
 
-	}
+		//**ready = (ready || previewTask.getRengineType() == RengineType.RCaller);
+		// Start processing new preview task.
+		if (ready && (previewTask == null || previewTask.getStatus() != TaskStatus.PROCESSING)) {
 
-	private void abortPreview() {
-
-		if (previewTask != null) { 
-			previewTask.kill(); 
-			previewTask = null; 
+			baselineCorrector.initProgress(dataFile);
+			previewTask = new PreviewTask(this, ticPlot, dataFile, rtRange, mzRange);
+			previewThread = new Thread(previewTask);
+			LOG.info("Launch preview task.");
+			previewThread.start();
 		}
-		progressBar.setVisible(false);
-		hidePreview();
 	}
 
 
 	/**
 	 * Quick way to recover the baseline plot (by subtracting the corrected file to the original one).
-	 * @param dataFile    original datafile
-	 * @param newDataFile corrected datafile
-	 * @param plotType    expected plot type
+	 * @param dataFile      original datafile
+	 * @param newDataFile   corrected datafile
+	 * @param plotType      expected plot type
 	 * @return the baseline additional dataset
 	 */
 	private XYDataset createBaselineDataset(RawDataFile dataFile, RawDataFile newDataFile, PlotType plotType) {
@@ -388,15 +443,19 @@ implements TaskListener  {
 		return dataset;
 	}
 
+
 	/* (non-Javadoc)
 	 * @see net.sf.mzmine.taskcontrol.TaskListener#statusChanged(net.sf.mzmine.taskcontrol.TaskEvent)
 	 */
 	@Override
 	public void statusChanged(TaskEvent e) {
 		if (e.getStatus() == TaskStatus.ERROR) {
-			this.abortPreview();
-			JOptionPane.showMessageDialog(this, e.getSource().getErrorMessage(), "Error of preview task", JOptionPane.ERROR_MESSAGE);
-		}
+			MZmineCore.getDesktop().displayErrorMessage( "Error of preview task ", e.getSource().getErrorMessage());
+			hidePreview();
+		} 
 	}
 
 }
+
+
+

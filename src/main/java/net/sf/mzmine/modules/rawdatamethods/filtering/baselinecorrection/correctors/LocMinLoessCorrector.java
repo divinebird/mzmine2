@@ -21,10 +21,10 @@ package net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.correc
 
 import javax.annotation.Nonnull;
 
-import org.rosuda.JRI.Rengine;
-
+import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrector;
 import net.sf.mzmine.parameters.ParameterSet;
+import net.sf.mzmine.util.RSession;
 import net.sf.mzmine.util.RUtilities;
 
 /**
@@ -38,11 +38,11 @@ public class LocMinLoessCorrector extends BaselineCorrector {
 	
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "rJava", "PROcess" };
+		return new String[] { "rJava", "Rserve", "PROcess" };
 	}
 
 	@Override
-	public double[] computeBaseline(double[] chromatogram, ParameterSet parameters) {
+	public double[] computeBaseline(final RSession rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) {
 
 		// Local Minima parameters.
 		String method = parameters.getParameter(LocMinLoessCorrectorParameters.METHOD).getValue();
@@ -51,35 +51,27 @@ public class LocMinLoessCorrector extends BaselineCorrector {
 		int breaks_width = parameters.getParameter(LocMinLoessCorrectorParameters.BREAK_WIDTH).getValue();
 		double qntl = parameters.getParameter(LocMinLoessCorrectorParameters.QNTL).getValue();
 
-		// Get R engine.
-		final Rengine rEngine;
-		try {
-			rEngine = RUtilities.getREngine();
-		}
-		catch (Throwable t) {
-			throw new IllegalStateException(
-					"Baseline correction requires R but it couldn't be loaded (" + t.getMessage() + ')');
-		}
 
 		final double[] baseline;
 		synchronized (RUtilities.R_SEMAPHORE) {
 
 			try {
 				// Set chromatogram.
-				rEngine.assign("chromatogram", chromatogram);
+				rSession.assignDoubleArray("chromatogram", chromatogram);
 				// Transform chromatogram.
 				int mini = 1;
 				int maxi = chromatogram.length;
-				rEngine.eval("mat = cbind(matrix(seq(" + ((double)mini) + ", " + ((double)maxi) + ", by = 1.0), ncol=1), " +
+				rSession.eval("mat = cbind(matrix(seq(" + ((double)mini) + ", " + ((double)maxi) + ", by = 1.0), ncol=1), " +
 						"matrix(chromatogram[" + mini + ":" + maxi + "], ncol=1))");
 				// Breaks
-				rEngine.eval("breaks <- " + ((breaks_width > 0) ? (int)Math.round((double)(maxi-mini)/(double)breaks_width) : breaks));
+				rSession.eval("breaks <- " + ((breaks_width > 0) ? (int)Math.round((double)(maxi-mini)/(double)breaks_width) : breaks));
 				// Calculate baseline.
-				rEngine.eval("bseoff <- bslnoff(mat, method=\"" + method + "\", bw=" + bw + ", breaks=breaks, qntl=" + qntl + ")");
-				baseline = rEngine.eval("mat[,2] - bseoff[,2]").asDoubleArray();
+				rSession.eval("bseoff <- bslnoff(mat, method=\"" + method + "\", bw=" + bw + ", breaks=breaks, qntl=" + qntl + ")");
+				rSession.eval("baseline <- mat[,2] - bseoff[,2]");
+				baseline = rSession.collectDoubleArray("baseline");
 			}
 			catch (Throwable t) {
-				throw new IllegalStateException("R error during baseline correction: ", t);
+				throw new IllegalStateException("R error during baseline correction.", t);
 			}
 		}
 		return baseline;

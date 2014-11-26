@@ -20,12 +20,10 @@
 package net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.correctors;
 
 import javax.annotation.Nonnull;
-
-import org.rosuda.JRI.Rengine;
-
+import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrector;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RUtilities;
+import net.sf.mzmine.util.RSession;
 
 /**
  * @description Asymmetric baseline corrector. Estimates a trend based on asymmetric least squares.
@@ -35,42 +33,36 @@ import net.sf.mzmine.util.RUtilities;
  * @date Nov 6, 2014
  */
 public class AsymmetryCorrector extends BaselineCorrector {
-	
+
+
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "rJava", "ptw" };
+		return new String[] { "rJava", "Rserve", "ptw" };
 	}
 
 	@Override
-	public double[] computeBaseline(double[] chromatogram, ParameterSet parameters) {
+	public double[] computeBaseline(final RSession rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) {
 
 		// Smoothing and asymmetry parameters.
-		double smoothing = parameters.getParameter(AsymmetryCorrectorParameters.SMOOTHING).getValue();
-		double asymmetry = parameters.getParameter(AsymmetryCorrectorParameters.ASYMMETRY).getValue();
+		final double smoothing = parameters.getParameter(AsymmetryCorrectorParameters.SMOOTHING).getValue();
+		final double asymmetry = parameters.getParameter(AsymmetryCorrectorParameters.ASYMMETRY).getValue();
 
-		// Get R engine.
-		final Rengine rEngine;
-		try {
-			rEngine = RUtilities.getREngine();
-		}
-		catch (Throwable t) {
-			throw new IllegalStateException(
-					"Baseline correction requires R but it couldn't be loaded (" + t.getMessage() + ')');
-		}
-
+		// Compute baseline.
 		final double[] baseline;
-		synchronized (RUtilities.R_SEMAPHORE) {
+		//synchronized (RUtilities.R_SEMAPHORE) {
 
 			try {
 				// Set chromatogram.
-				rEngine.assign("chromatogram", chromatogram);
+				rSession.assignDoubleArray("chromatogram", chromatogram);
 				// Calculate baseline.
-				baseline = rEngine.eval("asysm(chromatogram," + smoothing + ',' + asymmetry + ')').asDoubleArray();
+				rSession.eval("baseline <- asysm(chromatogram," + smoothing + ',' + asymmetry + ')');
+				baseline = rSession.collectDoubleArray("baseline");
 			}
 			catch (Throwable t) {
-				throw new IllegalStateException("R error during baseline correction: ", t);
+				t.printStackTrace();
+				throw new IllegalStateException("R error during baseline correction (" + this.getName() + ").", t);
 			}
-		}
+		//}
 		return baseline;
 	}
 
