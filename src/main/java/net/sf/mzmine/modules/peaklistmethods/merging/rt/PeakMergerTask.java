@@ -195,7 +195,7 @@ class PeakMergerTask extends AbstractTask {
 			// Look for dataPoint related to this peak to the left
 			int scanNumber = originScanNumber;
 			scanNumber--;
-			while (scanNumber > 0 && scanNumber >= scan_nums.get(0))
+			while (/*scanNumber > 0 &&*/ scanNumber >= scan_nums.get(0))
 			{
 				scan = this.workingDataFile.getScan(scanNumber);
 
@@ -278,7 +278,7 @@ class PeakMergerTask extends AbstractTask {
 			// Look to the right
 			//scanNumber = originScanNumber;
 			scanNumber++;
-			while (scanNumber <= totalScanNumber && scanNumber <= scan_nums.get(scan_nums.size()-1)) 
+			while (/*scanNumber <= totalScanNumber &&*/ scanNumber <= scan_nums.get(scan_nums.size()-1)) 
 			{
 				scan = this.workingDataFile.getScan(scanNumber);
 
