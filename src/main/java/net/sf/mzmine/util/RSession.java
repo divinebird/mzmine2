@@ -97,7 +97,6 @@ public class RSession {
 		
 		LOG.info("getRengineInstance() for: " + this.rEngineType.toString());
 		
-		//Object rEngine = null;
 		try {
 			if (this.rEngineType == RengineType.JRIengine) {
 				// Get JRI engine unique instance.
@@ -118,20 +117,15 @@ public class RSession {
 					this.rcallerCode = new RCode();
 					rcaller.setRCode(this.rcallerCode);
 					this.rEngine = rcaller;
+					
+					LOG.info("RCaller: started instance from paths <R:" + 
+								Globals.R_current + " | Rscipt:" + Globals.Rscript_current + ">.");
+					// Quick test
+					this.rcallerCode.addRCode("r_version <- R.version.string");
+					((RCaller)this.rEngine).runAndReturnResultOnline("s");
+					LOG.info(((RCaller) this.rEngine).getParser().getAsStringArray("r_version")[0]);
+					this.rcallerCode.clearOnline();			
 				}
-				// Quick test
-//				this.rcallerCode.addRCode("s <- R.version.string");
-//				((RCaller)this.rEngine).runAndReturnResultOnline("s");
-//				this.rcallerCode.clear();
-				
-//				LOG.info(((RCaller) this.rEngine).getParser().getAsStringArray("s")[0]);
-//				LOG.info(this.rcallerCode.getCode().toString());
-//				this.rcallerCode.clear();
-//				LOG.info(this.rcallerCode.getCode().toString());
-//				this.rcallerCode.addRCode("s <- R.version.string");
-//				this.rcallerCode.addRCode("s <- R.version.string");
-//				LOG.info(this.rcallerCode.getCode().toString());
-//				this.rcallerCode.clear();
 			} else {
 				
 				if (this.rEngine == null) {
@@ -141,15 +135,8 @@ public class RSession {
 								"Could not start Rserve. Please check if R and Rserve are installed and path to the "
 										+ "libraries is set properly in the startMZmine script.");
 					
-//					RConnection c = new RConnection();
-//					for (int i=0; i < packages.length; i++) {
-//						reqPackage = packages[i];
-//						c.serverEval("library(" + packages[i] + ")");
-//					}
-					
 					// Keep an opened instance and store the related pid
 					RConnection rconn = new RConnection();
-//					REngine re = (REngine) new RConnection();
 					this.rServePid = rconn.eval("Sys.getpid()").asInteger();
 					this.rEngine = rconn;
 					LOG.info("Rserve: started instance with pid '" + this.rServePid + "'.");
@@ -161,7 +148,6 @@ public class RSession {
 			throw new IllegalStateException(
 					"This feature requires R but it couldn't be loaded (" + t.getMessage() + ')');
 		}
-		//return rEngine;
 	}
 
 	public RengineType getRengineType() {
@@ -233,12 +219,11 @@ public class RSession {
 			try {
 				((RConnection)this.rEngine).assign(objName, dArray);
 			} catch (REngineException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				//e.printStackTrace();
 				throw new IllegalStateException("Rserve error: couldn't assign R object '" + objName + "'.");
 			}
 		}
-		//LOG.info("Assign '" + dArray + "' array to object '" + objName + "' DONE!");
+		//LOG.info("Assigned '" + dArray + "' array to object '" + objName + "'.");
 	}
 
 	public void eval(String rCode) {
@@ -249,13 +234,11 @@ public class RSession {
 			//}
 		} else if (this.rEngineType == RengineType.RCaller) {
 			this.rcallerCode.addRCode(rCode);
-			//LOG.info("Eval code: " + this.rcallerCode.getCode().toString());
 		} else {
 			try {
 				((RConnection)this.rEngine).eval(rCode);
 			} catch (RserveException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				//e.printStackTrace();
 				throw new IllegalStateException("Rserve error: couldn't eval R code '" + rCode + "'.");
 			}
 		}
@@ -271,15 +254,13 @@ public class RSession {
 			RCaller rcaller = ((RCaller) this.rEngine);
 			rcaller.runAndReturnResultOnline(objName);
 			double[] dArray =  rcaller.getParser().getAsDoubleArray(objName);			
-			//LOG.info("BEFORE: " + this.rcallerCode);
 			this.rcallerCode.clearOnline();
 			return dArray;
 		} else {
 			try {
 				return ((RConnection)this.rEngine).eval(objName).asDoubles();
 			} catch (RserveException | REXPMismatchException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				//e.printStackTrace();
 				throw new IllegalStateException("Rserve error: couldn't collect R object '" + objName + "'.");
 			}
 		}
@@ -294,6 +275,11 @@ public class RSession {
 //		this.loadRequiredPackages();
 	}
 	
+	/**
+	 * This can be necessary to call 'close()' from a different thread
+	 * than the one which called 'open()', sometimes, with Rserve.
+	 * @param userCanceled
+	 */
 	public void close(boolean userCanceled) {
 
 		if (this.rEngineType == RengineType.RCaller) {
@@ -319,8 +305,10 @@ public class RSession {
 				c2.close();
 				LOG.info("Rserve: terminated instance with pid '" + this.rServePid + "'.");
 			} catch (RserveException e) {
+				// Adapt message accordingly to if the termination was provoked by user or
+				// unexpected...
 				if (userCanceled) {
-					e.printStackTrace();
+					//e.printStackTrace();
 					throw new IllegalStateException("Rserve error: couldn't terminate instance with pid '" + this.rServePid + "'.");
 				} else {
 					throw new IllegalStateException("Rserve error: something when wrong with instance of pid '" + this.rServePid + "'.");

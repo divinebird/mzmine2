@@ -145,6 +145,8 @@ implements TaskListener {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		this.baselineCorrector.collectCommonParameters();
 
 		// Default plot type. Initialized according to the chosen chromatogram type.
 		this.setPlotType( (this.baselineCorrector.getChromatogramType() == ChromatogramType.TIC) ? 
@@ -192,6 +194,9 @@ implements TaskListener {
 
 			// Update the status of this task
 			setStatus(TaskStatus.PROCESSING);
+			
+			// Get parent module parameters
+			baselineCorrector.collectCommonParameters();
 
 			// Check R availability, by trying to open the connection
 			try {
@@ -201,7 +206,7 @@ implements TaskListener {
 			}
 			catch (Throwable t) {
 				String msg = t.getMessage();
-				LOG.log(Level.SEVERE, "Baseline correction error", msg);
+				LOG.log(Level.SEVERE, "Baseline correction error", t);
 				errorMessage = msg;
 				setStatus(TaskStatus.ERROR);
 				this.rSession = null;
@@ -214,7 +219,7 @@ implements TaskListener {
 			if (missingPackage != null) {
 				String msg = "The \"" + baselineCorrector.getName() + "\" requires " +
 						"the \"" + missingPackage + "\" R package, which couldn't be loaded - is it installed in R?";
-				LOG.log(Level.SEVERE, "Baseline correction error", msg);
+				LOG.log(Level.SEVERE, "Baseline correction error", new Throwable(msg));
 				errorMessage = msg;
 				setStatus(TaskStatus.ERROR);
 				return;
@@ -260,6 +265,8 @@ implements TaskListener {
 				if (!this.userCanceled)
 					e.printStackTrace();
 			}
+			// Turn off R instance
+			this.rSession.close(false);
 
 			// Task is over: Restore "parametersChanged" listeners
 			unset_VK_ESCAPE_KeyListener();

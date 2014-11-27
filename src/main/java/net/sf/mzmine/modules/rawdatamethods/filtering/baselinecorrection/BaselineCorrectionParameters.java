@@ -42,6 +42,7 @@ import net.sf.mzmine.parameters.parametertypes.RawDataFilesParameter;
 import net.sf.mzmine.parameters.parametertypes.StringParameter;
 import net.sf.mzmine.util.ExitCode;
 import net.sf.mzmine.util.RSession.RengineType;
+import java.util.logging.Logger;
 
 /**
  * Holds baseline correction module COMMON parameters.
@@ -54,6 +55,17 @@ import net.sf.mzmine.util.RSession.RengineType;
  * Reduced strictly to the parameters common to all the BaselineCorrectors.
  */
 public class BaselineCorrectionParameters extends SimpleParameterSet {
+	
+	// Logger.
+	private static final Logger LOG = Logger.getLogger(BaselineCorrectionParameters.class.getName());
+	
+	// Keep access to those parameters (use only from ParametersDialogs).
+	private static BaselineCorrectionParameters baselineCorrectionParameters = null;
+	protected static BaselineCorrectionParameters getBaselineCorrectionParameters() {
+		return baselineCorrectionParameters;
+	}
+	
+	
 
 	public static final RawDataFilesParameter dataFiles = new RawDataFilesParameter();
 	
@@ -83,7 +95,7 @@ public class BaselineCorrectionParameters extends SimpleParameterSet {
 	/**
 	 * List of available baseline correctors 
 	 */
-	public static final BaselineCorrector baselineCorrectors[] = { 
+	public static /*final*/ BaselineCorrector baselineCorrectors[] = { 
 		new AsymmetryCorrector(),		// (Package R "ptw"				- http://cran.r-project.org/web/packages/ptw/ptw.pdf)
 		new RollingBallCorrector(),		// (Package R "baseline"		- http://cran.r-project.org/web/packages/baseline/baseline.pdf)
 		new PeakDetectionCorrector(), 	// (Package R "baseline" 		- http://cran.r-project.org/web/packages/baseline/baseline.pdf)
@@ -144,6 +156,8 @@ public class BaselineCorrectionParameters extends SimpleParameterSet {
 		Parameter[] parameters = this.getParameters();
 		if ((parameters == null) || (parameters.length == 0))
 			return ExitCode.OK;
+		
+		baselineCorrectionParameters = this;
 		ParameterSetupDialog dialog = new InstantUpdateSetupDialog(this);
 		dialog.setVisible(true);
 		return dialog.getExitCode();
