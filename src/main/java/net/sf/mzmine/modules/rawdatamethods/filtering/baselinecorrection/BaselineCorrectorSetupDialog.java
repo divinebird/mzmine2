@@ -409,7 +409,7 @@ implements TaskListener {
 
 
 	/**
-	 * Quick way to recover the baseline plot (by subtracting the corrected file to the original one).
+	 * Quick way to recover the baseline plot (by subtracting the corrected file from the original one).
 	 * @param dataFile      original datafile
 	 * @param newDataFile   corrected datafile
 	 * @param plotType      expected plot type

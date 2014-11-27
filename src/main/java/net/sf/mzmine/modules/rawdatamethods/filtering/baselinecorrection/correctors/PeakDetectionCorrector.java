@@ -58,7 +58,7 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 
 
 		final double[] baseline;
-		synchronized (RUtilities.R_SEMAPHORE) {
+		//synchronized (RUtilities.R_SEMAPHORE) {
 
 			try {
 				// Set chromatogram.
@@ -90,9 +90,10 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 				baseline = rSession.collectDoubleArray("baseline");
 			}
 			catch (Throwable t) {
-				throw new IllegalStateException("R error during baseline correction.", t);
+				//t.printStackTrace();
+				throw new IllegalStateException("R error during baseline correction (" + this.getName() + ").", t);
 			}
-		}
+		//}
 		return baseline;
 	}
 
