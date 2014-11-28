@@ -63,6 +63,9 @@ public class BaselineCorrectionTask extends AbstractTask {
 
 	// Baseline corrector processing step
 	private final MZmineProcessingStep<BaselineCorrector> baselineCorrectorProcStep;
+	
+	// Common parameters.
+	private final ParameterSet commonParameters;
 
 	
 	private final RengineType rEngineType;
@@ -85,6 +88,8 @@ public class BaselineCorrectionTask extends AbstractTask {
 		this.correctedDataFile = null;
 		this.removeOriginal = parameters.getParameter(BaselineCorrectionParameters.REMOVE_ORIGINAL).getValue();
 		this.baselineCorrectorProcStep = parameters.getParameter(BaselineCorrectionParameters.BASELINE_CORRECTORS).getValue();
+		
+		this.commonParameters = parameters;
 
 		this.userCanceled = false;
 
@@ -136,7 +141,8 @@ public class BaselineCorrectionTask extends AbstractTask {
 			this.baselineCorrectorProcStep.getModule().initProgress(origDataFile);
 
 			final RawDataFile correctedDataFile = 
-					this.baselineCorrectorProcStep.getModule().correctDatafile(this.rSession, origDataFile, baselineCorrectorProcStep.getParameterSet());
+					this.baselineCorrectorProcStep.getModule().correctDatafile(this.rSession, origDataFile, 
+							baselineCorrectorProcStep.getParameterSet(), this.commonParameters);
 
 			// If this task was canceled, stop processing
 			if (!isCanceled() && correctedDataFile != null) {

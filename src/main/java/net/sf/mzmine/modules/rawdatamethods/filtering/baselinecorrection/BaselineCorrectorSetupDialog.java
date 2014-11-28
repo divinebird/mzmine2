@@ -146,7 +146,7 @@ implements TaskListener {
 			e.printStackTrace();
 		}
 		
-		this.baselineCorrector.collectCommonParameters();
+		this.baselineCorrector.collectCommonParameters(null);
 
 		// Default plot type. Initialized according to the chosen chromatogram type.
 		this.setPlotType( (this.baselineCorrector.getChromatogramType() == ChromatogramType.TIC) ? 
@@ -196,7 +196,7 @@ implements TaskListener {
 			setStatus(TaskStatus.PROCESSING);
 			
 			// Get parent module parameters
-			baselineCorrector.collectCommonParameters();
+			baselineCorrector.collectCommonParameters(null);
 
 			// Check R availability, by trying to open the connection
 			try {
@@ -209,7 +209,7 @@ implements TaskListener {
 				LOG.log(Level.SEVERE, "Baseline correction error", t);
 				errorMessage = msg;
 				setStatus(TaskStatus.ERROR);
-				this.rSession = null;
+				//this.rSession = null;
 				return;
 			}
 
@@ -222,6 +222,7 @@ implements TaskListener {
 				LOG.log(Level.SEVERE, "Baseline correction error", new Throwable(msg));
 				errorMessage = msg;
 				setStatus(TaskStatus.ERROR);
+				//this.rSession = null;
 				return;
 			}
 
@@ -246,7 +247,7 @@ implements TaskListener {
 				progressThread.start();
 
 				// Create a new corrected raw data file
-				RawDataFile newDataFile = baselineCorrector.correctDatafile(this.rSession, dataFile, correctorParameters);
+				RawDataFile newDataFile = baselineCorrector.correctDatafile(this.rSession, dataFile, correctorParameters, null);
 
 				// If successful, add the new data file
 				if (newDataFile != null) {

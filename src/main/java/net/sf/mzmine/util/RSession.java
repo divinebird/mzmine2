@@ -21,7 +21,6 @@ package net.sf.mzmine.util;
 
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXPMismatchException;
-import org.rosuda.REngine.REngine;
 import org.rosuda.REngine.REngineException;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
@@ -30,14 +29,6 @@ import rcaller.Globals;
 import rcaller.RCaller;
 import rcaller.RCode;
 
-import net.sf.mzmine.main.MZmineCore;
-import net.sf.mzmine.taskcontrol.AbstractTask;
-import net.sf.mzmine.taskcontrol.Task;
-import net.sf.mzmine.taskcontrol.TaskEvent;
-import net.sf.mzmine.taskcontrol.TaskListener;
-import net.sf.mzmine.taskcontrol.TaskStatus;
-
-import java.util.ArrayList;
 import java.util.logging.Logger;
 
 /**
@@ -177,13 +168,16 @@ public class RSession {
 //			}
 			this.rcallerCode.R_require(packageName);
 		} else {
+			int loaded = 0;
 			try {
-				((RConnection)this.rEngine).eval("library(" + packageName + ")");
-			} catch (RserveException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				throw new IllegalStateException("Rserve error: couldn't load package '" + packageName + "'.");
+				loaded = ((RConnection)this.rEngine).eval(loadCode).asInteger(); //("library(" + packageName + ")");
+			} catch (RserveException | REXPMismatchException e) {
+				// Remain silent if eval KO ("server down").
+				loaded = Integer.MIN_VALUE;
 			}
+			// Throw loading failure only if eval OK ("server down" case will be handled soon enough).
+			if (loaded == 0)
+				throw new IllegalStateException(errorMsg);
 		}
 	}
 	
@@ -198,7 +192,7 @@ public class RSession {
 			}
 			return null;
 		} catch (Exception e) {
-			LOG.info("Failed loading package: " + reqPackage + "'.");
+			LOG.info("Failed loading package: '" + reqPackage + "'.");
 			return reqPackage;
 		}			
 	}
@@ -299,9 +293,59 @@ public class RSession {
 //					c2.close();
 //					LOG.info("Rserve: killed (brute force) instance with pid '" + this.rServePid + "'.");
 //				}
+				//**((REngine) this.rEngine).close();
 				// Terminate.
-				RConnection c2 = new RConnection();
-				c2.eval("tools::pskill("+ this.rServePid +")");
+				final RConnection c2 = new RConnection();
+				// SIGTERM might not be understood everywhere: so using SIGKILL signal, as well.
+				c2.eval("tools::pskill("+ this.rServePid + ")"); //win
+				c2.eval("tools::pskill("+ this.rServePid + ", tools::SIGKILL)"); //nix
+//				// Need to wait for the process to be dead for real.
+//				class R implements Runnable {
+//					
+//					private int pid;
+//					
+//					public R(int pid) {
+//						super();
+//						this.pid = pid;
+//					}
+//
+//					/* (non-Javadoc)
+//					 * @see java.lang.Runnable#run()
+//					 */
+//					@Override
+//					public void run() {
+//						int dead = 0;
+//						int timeout = 0;
+//						while (dead == 0 && timeout < 5) {
+//							try {
+//								dead = c2.eval("tools::pskill("+ this.pid + ")").asInteger();
+//								LOG.info("Rserve: kill status = '" + dead + "'.");
+//								if (dead == 0) {
+//									try {
+//										Thread.sleep(1000);
+//										++timeout;
+//									} catch (InterruptedException e) {
+//										// TODO Auto-generated catch block
+//										e.printStackTrace();
+//										timeout = 5;
+//									}
+//								}
+//							} catch (RserveException | REXPMismatchException e) {
+//								// TODO Auto-generated catch block
+//								e.printStackTrace();
+//							}
+//						}
+//					}
+//				}
+//				Thread T = new Thread( new R(this.rServePid) );
+//				T.start();
+//				try {
+//					T.join();
+//				} catch (InterruptedException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+//				// Final closure.
 				c2.close();
 				LOG.info("Rserve: terminated instance with pid '" + this.rServePid + "'.");
 			} catch (RserveException e) {
