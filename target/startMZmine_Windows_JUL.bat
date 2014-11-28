@@ -28,6 +28,7 @@ set R_INCLUDE_DIR=%R_HOME%\include
 set R_DOC_DIR=%R_HOME%\doc
 set R_LIBS_USER=%R_HOME%\library
 
+
 rem Include R DLLs in PATH.
 set PATH=%R_HOME%\bin\i386
 
@@ -41,7 +42,7 @@ set JAVA_COMMAND="C:\Program Files\Java\jdk1.7.0_65\jre\bin\java.exe"
 
 rem It is not necessary to modify the following section
 set JAVA_PARAMETERS=-XX:+UseParallelGC -Djava.io.tmpdir=%TMP_FILE_DIRECTORY% -Xms%HEAP_SIZE%m -Xmx%HEAP_SIZE%m -Djava.library.path="%JRI_LIB_PATH%"
-set CLASS_PATH=lib\MZmine-2.10.jar
+set CLASS_PATH=lib\MZmine-2.11-EEE.jar
 set MAIN_CLASS=net.sf.mzmine.main.MZmineCore
 
 rem Show java version, in case a problem occurs
