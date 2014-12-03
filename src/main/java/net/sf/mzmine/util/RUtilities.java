@@ -408,24 +408,50 @@ public class RUtilities {
 
 	public static void killRserveInstance(RSessionWrapper rSession) throws RserveException {
 
-		//*final RConnection c2 = new RConnection();
-		Rsession session = Rsession.newInstanceTry(new LoggerStream(LOG, Level.INFO), null);
-		boolean success = false;
-		if (session != null) {
-			final RConnection c2 = session.connection;
-			// SIGTERM might not be understood everywhere: so using SIGKILL signal, as well.
-			if (c2 != null && c2.isConnected() && rSession.getPID() != -1) {
-				c2.eval("tools::pskill("+ rSession.getPID() + ")"); //win
-				//c2.eval("tools::pskill("+ this.rServePid + ", tools::SIGKILL)"); //nix
-				//*c2.close();
-				success = true;
+		synchronized (RUtilities.R_SEMAPHORE) {
+
+			String osname = System.getProperty("os.name");
+			if (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows")) {
+				try {
+					Process p = Runtime.getRuntime().exec("TASKKILL /PID " + rSession.getPID() + " /F");
+					p.waitFor();
+				} catch (InterruptedException | IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			} else {
+				/**************************************************************
+				 * 
+				 * TODO: Treat the following 'synchronized' block differently for non Windows.
+				 * 
+				 * 1/ No need for synch, I guess??? Just set 'rSession.userCanceled = true;'
+				 * 2/ No need for newInstanceTry() => a simple 'c2 = new RConnection();'
+				 * 		should be fine.
+				 * 
+				 * 3/ Q: A simple 'kill -9 pid' wouldn't be preferable? NO!!
+				 * 
+				 */
+				//*final RConnection c2 = new RConnection();
+				Rsession session = Rsession.newInstanceTry(new LoggerStream(LOG, Level.INFO), null);
+				boolean success = false;
+				if (session != null) {
+					final RConnection c2 = session.connection;
+					// SIGTERM might not be understood everywhere: so using SIGKILL signal, as well.
+					if (c2 != null && c2.isConnected() && rSession.getPID() != -1) {
+						c2.eval("tools::pskill("+ rSession.getPID() + ")"); //win
+						//c2.eval("tools::pskill("+ this.rServePid + ", tools::SIGKILL)"); //nix
+						c2.close();
+						success = true;
+					}
+					session.end();
+					
+				}
+		//		if (!success)
+		//			throw new IllegalStateException(
+		//					"Could not start Rserve. Please check if R and Rserve are installed and path to the "
+		//							+ "libraries is set properly in the startMZmine script.");				
 			}
-			session.end();
 		}
-//		if (!success)
-//			throw new IllegalStateException(
-//					"Could not start Rserve. Please check if R and Rserve are installed and path to the "
-//							+ "libraries is set properly in the startMZmine script.");			
 	}
 
 }

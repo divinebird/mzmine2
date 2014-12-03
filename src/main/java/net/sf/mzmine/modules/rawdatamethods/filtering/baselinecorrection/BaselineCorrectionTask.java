@@ -188,13 +188,13 @@ public class BaselineCorrectionTask extends AbstractTask {
 		
 		this.userCanceled = true;
 		
-		// Turn off R instance
-		this.rSession.close(true);
-		
 		// Ask running module to stop
 		baselineCorrectorProcStep.getModule().setAbortProcessing(origDataFile, true);
 
 		super.cancel();
+		
+		// Turn off R instance
+		this.rSession.close(true);
 	}
 
 

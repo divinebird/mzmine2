@@ -69,6 +69,8 @@ public class RSessionWrapper {
 	
 	private Rsession session;
 	private int rServePid = -1;
+	
+	private boolean userCanceled = false;
 
 	public RSessionWrapper(RengineType type, String[] reqPackages) {
 		this.rEngineType = type;
@@ -124,9 +126,19 @@ public class RSessionWrapper {
 				
 				if (this.rEngine == null) {
 					
+					/**************************************************************
+					 * 
+					 * TODO: Treat the following 'synchronized' block differently for non Windows.
+					 * 
+					 * 1/ No need for synch
+					 * 2/ No need for newInstanceTry() => as simple rconn = new RConnection();
+					 * 		will be fine.
+					 * 
+					 */
+										
 					// Need a new session to be completely instantiated before asking for another one
 					// otherwise, under Windows, the "multi-instance emulation" system will try several
-					// session startup on same port (aka: each new session port has to be in unavailable
+					// session startup on same port (aka: each new session port has to be used / unavailable
 					// before trying to get another one).
 					synchronized (RUtilities.R_SEMAPHORE) {
 						//*if (!RUtilities.checkLocalRserve())
@@ -134,6 +146,16 @@ public class RSessionWrapper {
 							throw new IllegalStateException(
 									"Could not start Rserve. Please check if R and Rserve are installed and path to the "
 											+ "libraries is set properly in the startMZmine script.");
+						
+					}
+					
+					// As "Rsession.newInstanceTry()" runs an Rdaemon Thread. It is scheduled,
+					// meaning the session will be opened even for "WAITING" tasks, in any case.
+					// Then, we need to kill it after the instance is created, since trying to abort
+					// the instance (close the session) before it exists would result in no termination.
+					if (session != null && this.userCanceled) {
+						this.close(true);
+						return;
 					}
 //			        org.math.R.Logger l = new org.math.R.Logger() {
 //
@@ -292,7 +314,7 @@ public class RSessionWrapper {
 
 	public void open() {
 		// Load engine
-		getRengineInstance();
+		if (!this.userCanceled) getRengineInstance();
 //		// Check & load packages
 //		this.loadRequiredPackages();
 	}
@@ -303,6 +325,8 @@ public class RSessionWrapper {
 	 * @param userCanceled
 	 */
 	public void close(boolean userCanceled) {
+		
+		this.userCanceled = userCanceled;
 
 		if (this.rEngineType == RengineType.RCaller) {
 			RCaller rcaller = ((RCaller) this.rEngine);
@@ -381,8 +405,10 @@ public class RSessionWrapper {
 ////				// Final closure.
 //				c2.close();
 				
-				RUtilities.killRserveInstance(this);
-				//this.session.end();
+				////synchronized (RUtilities.R_SEMAPHORE) {
+					this.session.end();
+					RUtilities.killRserveInstance(this);
+				////}
 				
 				LOG.info("Rserve: terminated instance with pid '" + this.rServePid + "'.");
 			} catch (RserveException e) {
