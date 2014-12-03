@@ -32,9 +32,9 @@ import net.sf.mzmine.datamodel.impl.SimpleScan;
 import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.modules.MZmineModule;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RSession;
+import net.sf.mzmine.util.RSessionWrapper;
 import net.sf.mzmine.util.Range;
-import net.sf.mzmine.util.RSession.RengineType;
+import net.sf.mzmine.util.RSessionWrapper.RengineType;
 
 /**
  * @description Abstract corrector class for baseline correction. Has to be specialized via the
@@ -130,7 +130,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 //	}
 
 
-	public final RawDataFile correctDatafile(final RSession rSession, final RawDataFile dataFile, final ParameterSet parameters, 
+	public final RawDataFile correctDatafile(final RSessionWrapper rSession, final RawDataFile dataFile, final ParameterSet parameters, 
 			final ParameterSet commonParameters) 
 			throws IOException
 	{
@@ -270,7 +270,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @throws BaselineCorrectionException 
 	 * @throws InterruptedException 
 	 */
-	private void correctBasePeakBaselines(final RSession rSession, final RawDataFile origDataFile, 
+	private void correctBasePeakBaselines(final RSessionWrapper rSession, final RawDataFile origDataFile, 
 			final RawDataFileWriter writer, final int level, final int numBins, final ParameterSet parameters)
 					throws IOException {
 
@@ -318,7 +318,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	 * @throws IOException if there are i/o problems.
 	 * @throws BaselineCorrectionException 
 	 */
-	private void correctTICBaselines(final RSession rSession, final RawDataFile origDataFile, 
+	private void correctTICBaselines(final RSessionWrapper rSession, final RawDataFile origDataFile, 
 			final RawDataFileWriter writer, final int level, final int numBins, final ParameterSet parameters)
 			throws IOException {
 

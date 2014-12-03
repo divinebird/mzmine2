@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrector;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RSession;
+import net.sf.mzmine.util.RSessionWrapper;
 import net.sf.mzmine.util.RUtilities;
 
 /**
@@ -45,7 +45,7 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 	}
 
 	@Override
-	public double[] computeBaseline(final RSession rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) {
+	public double[] computeBaseline(final RSessionWrapper rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) {
 
 		// Peak Detection parameters.
 		int left = parameters.getParameter(PeakDetectionCorrectorParameters.LEFT).getValue();

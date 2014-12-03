@@ -19,6 +19,7 @@
 
 package net.sf.mzmine.util;
 
+import org.math.R.Rsession;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REngineException;
@@ -29,6 +30,7 @@ import rcaller.Globals;
 import rcaller.RCaller;
 import rcaller.RCode;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -36,10 +38,10 @@ import java.util.logging.Logger;
  * @author Gauthier Boaglio
  * @date Nov 19, 2014
  */
-public class RSession {
+public class RSessionWrapper {
 
 	// Logger.
-	private static final Logger LOG = Logger.getLogger(RSession.class.getName());
+	private static final Logger LOG = Logger.getLogger(RSessionWrapper.class.getName());
 
 	public enum RengineType {
 
@@ -65,9 +67,10 @@ public class RSession {
 
 	private RCode rcallerCode;
 	
+	private Rsession session;
 	private int rServePid = -1;
 
-	public RSession(RengineType type, String[] reqPackages) {
+	public RSessionWrapper(RengineType type, String[] reqPackages) {
 		this.rEngineType = type;
 		this.reqPackages = reqPackages;
 	}
@@ -121,15 +124,40 @@ public class RSession {
 				
 				if (this.rEngine == null) {
 					
-					if (!RUtilities.checkLocalRserve())
-						throw new IllegalStateException(
-								"Could not start Rserve. Please check if R and Rserve are installed and path to the "
-										+ "libraries is set properly in the startMZmine script.");
+					// Need a new session to be completely instantiated before asking for another one
+					// otherwise, under Windows, the "multi-instance emulation" system will try several
+					// session startup on same port (aka: each new session port has to be in unavailable
+					// before trying to get another one).
+					synchronized (RUtilities.R_SEMAPHORE) {
+						//*if (!RUtilities.checkLocalRserve())
+						if ((session = Rsession.newInstanceTry(new LoggerStream(LOG, Level.INFO), null)) == null)
+							throw new IllegalStateException(
+									"Could not start Rserve. Please check if R and Rserve are installed and path to the "
+											+ "libraries is set properly in the startMZmine script.");
+					}
+//			        org.math.R.Logger l = new org.math.R.Logger() {
+//
+//			            public void println(String string, Level level) {
+//			                LOG.log(level, string);
+//			            }
+//
+//			            public void close() {
+//			            }
+//
+//						@Override
+//						public void println(String string) {
+//							// TODO Auto-generated method stub
+//							println(string, Level.INFO);
+//						}
+//			        };
 					
 					// Keep an opened instance and store the related pid
-					RConnection rconn = new RConnection();
-					this.rServePid = rconn.eval("Sys.getpid()").asInteger();
-					this.rEngine = rconn;
+					//*RConnection rconn = new RConnection();
+//					session = Rsession.newLocalInstance(new LoggerStream(LOG, Level.INFO), null);
+//					session = Rsession.newInstanceTry(new LoggerStream(LOG, Level.INFO), null);
+					//*RConnection rconn = session.connection;
+					this.rServePid = session.connection.eval("Sys.getpid()").asInteger();
+					this.rEngine = session.connection;
 					LOG.info("Rserve: started instance with pid '" + this.rServePid + "'.");
 				}
 			}
@@ -293,60 +321,69 @@ public class RSession {
 //					c2.close();
 //					LOG.info("Rserve: killed (brute force) instance with pid '" + this.rServePid + "'.");
 //				}
-				//**((REngine) this.rEngine).close();
-				// Terminate.
-				final RConnection c2 = new RConnection();
-				// SIGTERM might not be understood everywhere: so using SIGKILL signal, as well.
-				c2.eval("tools::pskill("+ this.rServePid + ")"); //win
-				c2.eval("tools::pskill("+ this.rServePid + ", tools::SIGKILL)"); //nix
-//				// Need to wait for the process to be dead for real.
-//				class R implements Runnable {
-//					
-//					private int pid;
-//					
-//					public R(int pid) {
-//						super();
-//						this.pid = pid;
-//					}
-//
-//					/* (non-Javadoc)
-//					 * @see java.lang.Runnable#run()
-//					 */
-//					@Override
-//					public void run() {
-//						int dead = 0;
-//						int timeout = 0;
-//						while (dead == 0 && timeout < 5) {
-//							try {
-//								dead = c2.eval("tools::pskill("+ this.pid + ")").asInteger();
-//								LOG.info("Rserve: kill status = '" + dead + "'.");
-//								if (dead == 0) {
-//									try {
-//										Thread.sleep(1000);
-//										++timeout;
-//									} catch (InterruptedException e) {
-//										// TODO Auto-generated catch block
-//										e.printStackTrace();
-//										timeout = 5;
-//									}
-//								}
-//							} catch (RserveException | REXPMismatchException e) {
-//								// TODO Auto-generated catch block
-//								e.printStackTrace();
-//							}
-//						}
-//					}
+				
+				
+				
+//				//**((REngine) this.rEngine).close();
+//				// Terminate.
+//				final RConnection c2 = new RConnection();
+//				// SIGTERM might not be understood everywhere: so using SIGKILL signal, as well.
+//				if (c2.isConnected() && this.rServePid != -1) {
+//					c2.eval("tools::pskill("+ this.rServePid + ")"); //win
+//					//c2.eval("tools::pskill("+ this.rServePid + ", tools::SIGKILL)"); //nix
 //				}
-//				Thread T = new Thread( new R(this.rServePid) );
-//				T.start();
-//				try {
-//					T.join();
-//				} catch (InterruptedException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
-//				// Final closure.
-				c2.close();
+////				// Need to wait for the process to be dead for real.
+////				class R implements Runnable {
+////					
+////					private int pid;
+////					
+////					public R(int pid) {
+////						super();
+////						this.pid = pid;
+////					}
+////
+////					/* (non-Javadoc)
+////					 * @see java.lang.Runnable#run()
+////					 */
+////					@Override
+////					public void run() {
+////						int dead = 0;
+////						int timeout = 0;
+////						while (dead == 0 && timeout < 5) {
+////							try {
+////								dead = c2.eval("tools::pskill("+ this.pid + ")").asInteger();
+////								LOG.info("Rserve: kill status = '" + dead + "'.");
+////								if (dead == 0) {
+////									try {
+////										Thread.sleep(1000);
+////										++timeout;
+////									} catch (InterruptedException e) {
+////										// TODO Auto-generated catch block
+////										e.printStackTrace();
+////										timeout = 5;
+////									}
+////								}
+////							} catch (RserveException | REXPMismatchException e) {
+////								// TODO Auto-generated catch block
+////								e.printStackTrace();
+////							}
+////						}
+////					}
+////				}
+////				Thread T = new Thread( new R(this.rServePid) );
+////				T.start();
+////				try {
+////					T.join();
+////				} catch (InterruptedException e) {
+////					// TODO Auto-generated catch block
+////					e.printStackTrace();
+////				}
+////				// Final closure.
+//				c2.close();
+				
+				RUtilities.killRserveInstance(this);
+				//this.session.end();
+				
 				LOG.info("Rserve: terminated instance with pid '" + this.rServePid + "'.");
 			} catch (RserveException e) {
 				// Adapt message accordingly to if the termination was provoked by user or
@@ -360,6 +397,13 @@ public class RSession {
 			}
 		}
 
+	}
+	
+	public int getPID() {
+		return this.rServePid;
+	}
+	public Rsession getSession() {
+		return this.session;
 	}
 
 }

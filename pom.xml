@@ -444,13 +444,13 @@
             <scope>provided</scope>
         </dependency>
         
-<!-- No more used ??
+		<!-- No more used ?? => USED! -->
 		<dependency>
 			<groupId>Rsession</groupId>
 			<artifactId>Rsession</artifactId>
 			<version>0.6</version>
 		</dependency>
--->
+
 		<!-- To be removed soon: Rserve does the job well -->
 		<dependency>
 			<groupId>RCaller</groupId>

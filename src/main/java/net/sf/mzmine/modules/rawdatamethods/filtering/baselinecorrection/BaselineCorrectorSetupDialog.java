@@ -48,9 +48,9 @@ import net.sf.mzmine.taskcontrol.AbstractTask;
 import net.sf.mzmine.taskcontrol.TaskEvent;
 import net.sf.mzmine.taskcontrol.TaskListener;
 import net.sf.mzmine.taskcontrol.TaskStatus;
-import net.sf.mzmine.util.RSession;
+import net.sf.mzmine.util.RSessionWrapper;
 import net.sf.mzmine.util.Range;
-import net.sf.mzmine.util.RSession.RengineType;
+import net.sf.mzmine.util.RSessionWrapper.RengineType;
 
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
@@ -164,7 +164,7 @@ implements TaskListener {
 		private BaselineCorrectorSetupDialog dialog;
 		private ProgressThread progressThread;
 
-		private RSession rSession;
+		private RSessionWrapper rSession;
 		
 		private boolean userCanceled;
 
@@ -201,7 +201,7 @@ implements TaskListener {
 			// Check R availability, by trying to open the connection
 			try {
 				String[] reqPackages = baselineCorrector.getRequiredRPackages();
-				this.rSession = new RSession(baselineCorrector.getRengineType(), reqPackages);
+				this.rSession = new RSessionWrapper(baselineCorrector.getRengineType(), reqPackages);
 				this.rSession.open();
 			}
 			catch (Throwable t) {
