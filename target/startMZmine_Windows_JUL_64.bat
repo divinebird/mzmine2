@@ -37,7 +37,7 @@ set R_DOC_DIR=%R_HOME%\doc
 set R_LIBS_USER=%R_HOME%\library
 
 rem Include R DLLs in PATH.
-set PATH=%R_HOME%\bin\x64
+set PATH=%PATH%;%R_HOME%\bin\x64
 
 rem The directory holding the JRI shared library (libjri.so).
 set JRI_LIB_PATH=%R_HOME%\library\rJava\jri\x64
