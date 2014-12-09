@@ -28,17 +28,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.math.R.Rsession;
 import org.rosuda.JRI.RMainLoopCallbacks;
 import org.rosuda.JRI.Rengine;
-import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
 /**
  * Utilities for interfacing with R.
+ * Kept JRI for nostalgia reasons...
  * 
  * @author $Author$
  * @version $Revision$
@@ -46,8 +46,13 @@ import org.rosuda.REngine.Rserve.RserveException;
 public class RUtilities {
 
 	// Logger.
-	private static final Logger LOG = Logger.getLogger(RUtilities.class
-			.getName());
+	private static final Logger LOG = Logger.getLogger(RUtilities.class.getName());
+
+	// Check if OS is windows.
+	public static boolean isWindows() {
+		String osname = System.getProperty("os.name");
+		return (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows"));
+	}
 
 	//** JRI utilities
 
@@ -96,10 +101,13 @@ public class RUtilities {
 						throw new IllegalStateException("JRI version mismatch");
 					}
 
-				} catch (UnsatisfiedLinkError error) {
+				} catch (UnsatisfiedLinkError e) {
+					e.printStackTrace();
 					throw new IllegalStateException(
-							"Could not start R. Please check if R is installed and path to the "
-									+ "libraries is set properly in the startMZmine script.");
+							"Could not start R. Please check if R is installed and path to the " +
+									"JRI libraries are set properly in the startMZmine script " + 
+									"(See: 'rJava' R package - \"install.packages(c('rJava'))\")."
+							);
 				}
 
 				LOG.finest("Creating R Engine.");
@@ -161,44 +169,11 @@ public class RUtilities {
 	}
 
 
-	//    //** JRI + RCaller utilities
-	//	static public void checkPackage(String packageName) throws IllegalStateException {
-	//
-	//		String loadCode = "library(" + packageName + ", logical.return = TRUE)";
-	//		String errorMsg = "The \"" + packageName + "\" R package couldn't be loaded - is it installed in R?";
-	//
-	//		RengineType rEngineType = (rEngine instanceof Rengine) ? RengineType.JRIengine : RengineType.RCaller;
-	//		
-	//		if (rEngineType == RengineType.JRIengine) {
-	//			synchronized (RUtilities.R_SEMAPHORE) {
-	//				Rengine rEngine = RUtilities.getREngine();
-	//				if (((Rengine) rEngine).eval(loadCode).asBool().isFALSE()) {
-	//					throw new IllegalStateException(errorMsg);
-	//				}
-	//			}
-	//		} else {
-	//			// New instance
-	//			RCaller rcaller = new RCaller();
-	//			RCode rcallerCode = new RCode();
-	//			
-	//			String logicalRet = "pkgOK";
-	//			rcallerCode.addRCode(logicalRet + " <- " + loadCode);
-	//			rcaller.runAndReturnResultOnline(logicalRet);
-	//			if (rcaller.getParser().getAsLogicalArray(logicalRet)[0]) {
-	//				throw new IllegalStateException(errorMsg);
-	//			}
-	//			// Turn instance off
-	//			rcaller.stopStreamConsumers();
-	//			rcaller.StopRCallerOnline();
-	//		}		
-	//	}
-	//
-	//    //** RCaller utilities
-	//	//...
-
-
-	//** Rserve utilities
-	/** helper class that consumes output of a process. In addition, it filter output of the REG command on Windows to look for InstallPath registry entry which specifies the location of R. */
+	//** R path utilities
+	/** 
+	 * Helper class that consumes output of a process. In addition, it filters output of the REG 
+	 * command on Windows to look for InstallPath registry entry which specifies the location of R.
+	 */
 	static class StreamHog extends Thread {
 		InputStream is;
 		boolean capture;
@@ -225,10 +200,10 @@ public class RUtilities {
 							if (j >= 0)
 								s = s.substring(j + 6).trim();
 							installPath = s;
-							LOG.log(Level.INFO, "R InstallPath = "+s);
+							LOG.log(Level.FINEST, "R InstallPath = " + s);
 						}
 					} else 
-						LOG.log(Level.INFO, "Rserve>" + line);
+						LOG.log(Level.FINEST, "Rserve > " + line);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -236,11 +211,51 @@ public class RUtilities {
 		}
 	}
 
+	/**
+	 * Utility class to consume and eventually redirect system calll outputs.
+	 * @author golgauth
+	 */
+	static class StreamGobbler extends Thread {
+		
+		InputStream is;
+		String type;
+		OutputStream os;
+
+		StreamGobbler(InputStream is, String type) {
+			this(is, type, null);
+		}
+		StreamGobbler(InputStream is, String type, OutputStream redirect) {
+			this.is = is;
+			this.type = type;
+			this.os = redirect;
+		}
+
+		public void run() {
+			try {
+				PrintWriter pw = null;
+				if (os != null) { pw = new PrintWriter(os); }
+
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader br = new BufferedReader(isr);
+				String line=null;
+				while ( (line = br.readLine()) != null)
+				{
+					if (pw != null) { pw.println(line); }
+					System.out.println(type + " > " + line);    
+				}
+				if (pw != null) { pw.flush(); }
+			} catch (IOException ioe) {
+				ioe.printStackTrace();  
+			}
+		}
+	}
+
+
 	public static String getRexecutablePath() {
 
-		String osname = System.getProperty("os.name");
-		if (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows")) {
-			LOG.log(Level.INFO, "Windows: query registry to find where R is installed ...");
+		// Win: Get R path from registry
+		if (isWindows()) {
+			LOG.log(Level.FINEST, "Windows: query registry to find where R is installed ...");
 			String installPath = null;
 			try {
 				Process rp = Runtime.getRuntime().exec("reg query HKLM\\Software\\R-core\\R");
@@ -249,18 +264,22 @@ public class RUtilities {
 				regHog.join();
 				installPath = regHog.getInstallPath();
 			} catch (Exception rge) { 
-				LOG.log(Level.SEVERE, "ERROR: unable to run REG to find the location of R: "+rge);
+				LOG.log(Level.SEVERE, "ERROR: unable to run REG to find the location of R: " + rge);
 				return null;
 			}
 			if (installPath == null) {
 				LOG.log(Level.SEVERE, "ERROR: canot find path to R. Make sure reg is available and R was installed with registry settings.");
 				return null;
 			}
-			return installPath + "\\bin\\R.exe";
+			File f = new File(installPath);
+			return ((f.exists())? installPath + "\\bin\\R.exe" : null);
 		}
 
+		// Mac OSX
 		File f = new File("/Library/Frameworks/R.framework/Resources/bin/R");
 		if (f.exists()) return f.getPath();
+
+		// *NUX
 		f = new File("/usr/local/lib/R/bin/R");
 		if (f.exists()) return f.getPath();
 		f = new File("/usr/lib/R/bin/R");
@@ -272,186 +291,124 @@ public class RUtilities {
 		f = new File("/opt/bin/R");
 		if (f.exists()) return f.getPath();
 
-
 		return null;
 
 	}
 
-	
-	//** Rserve utilities
-//	/**
-//	 * rosuda
-//	 */
-//	/** simple utility that starts Rserve locally if it's not running already - see mainly <code>checkLocalRserve</code> method. It spits out quite some debugging outout of the console, so feel free to modify it for your application if desired.<p>
-//	 <i>Important:</i> All applications should shutdown every Rserve that they started! Never leave Rserve running if you started it after your application quits since it may pose a security risk. Inform the user if you started an Rserve instance.
-//	 */
-//	/** shortcut to <code>launchRserve(cmd, "--no-save --slave", "--no-save --slave", false)</code> */
-//	public static boolean launchRserve(String cmd) { return launchRserve(cmd, "--no-save --slave", "--no-save --slave --RS-enable-control", false); }
-//
-//	/** attempt to start Rserve. Note: parameters are <b>not</b> quoted, so avoid using any quotes in arguments
-//		 @param cmd command necessary to start R
-//		 @param rargs arguments are are to be passed to R
-//		 @param rsrvargs arguments to be passed to Rserve
-//		 @return <code>true</code> if Rserve is running or was successfully started, <code>false</code> otherwise.
-//	 */
-//	public static boolean launchRserve(String cmd, String rargs, String rsrvargs, boolean debug) {
-//		try {
-//			Process p;
-//			boolean isWindows = false;
-//			String osname = System.getProperty("os.name");
-//			if (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows")) {
-//				isWindows = true; /* Windows startup */
-//				p = Runtime.getRuntime().exec("\""+cmd+"\" -e \"library(Rserve);Rserve("+(debug?"TRUE":"FALSE")+",args='"+rsrvargs+"',wait=TRUE)\" "+rargs);
-//			} else /* unix startup */
-//				p = Runtime.getRuntime().exec(new String[] {
-//						"/bin/sh", "-c",
-//						"echo 'library(Rserve);Rserve("+(debug?"TRUE":"FALSE")+",args=\""+rsrvargs+"\")'|"+cmd+" "+rargs
-//				});
-//			LOG.log(Level.INFO, "waiting for Rserve to start ... ("+p+")");
-//			// we need to fetch the output - some platforms will die if you don't ...
-//			StreamHog errorHog = new StreamHog(p.getErrorStream(), false);
-//			StreamHog outputHog = new StreamHog(p.getInputStream(), false);
-//			if (!isWindows) /* on Windows the process will never return, so we cannot wait */
-//				p.waitFor();
-////			LOG.log(Level.INFO, "call terminated, let us try to connect ...");
-//		} catch (Exception x) {
-//			LOG.log(Level.SEVERE, "failed to start Rserve process with "+x.getMessage());
-//			return false;
-//		}
-//		int attempts = 5; /* try up to 5 times before giving up. We can be conservative here, because at this point the process execution itself was successful and the start up is usually asynchronous */
-//		while (attempts > 0) {
-//			try {
-//				RConnection c = new RConnection();
-//				LOG.log(Level.INFO, "Rserve is running.");
-//				c.close();
-//				return true;
-//			} catch (Exception e2) {
-//				LOG.log(Level.SEVERE, "Try failed with: "+e2.getMessage());
-//			}
-//			/* a safety sleep just in case the start up is delayed or asynchronous */
-//			try { Thread.sleep(500); } catch (InterruptedException ix) { };
-//			attempts--;
-//		}
-//		return false;
-//	}
-//
-//	/** checks whether Rserve is running and if that's not the case it attempts to start it using the defaults for the platform where it is run on. This method is meant to be set-and-forget and cover most default setups. For special setups you may get more control over R with <<code>launchRserve</code> instead. */
-//	public static boolean checkLocalRserve() {
-//		if (isRserveRunning()) return true;
-//		String osname = System.getProperty("os.name");
-//		if (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows")) {
-//			LOG.log(Level.INFO, "Windows: query registry to find where R is installed ...");
-//			String installPath = null;
-//			try {
-//				Process rp = Runtime.getRuntime().exec("reg query HKLM\\Software\\R-core\\R");
-//				StreamHog regHog = new StreamHog(rp.getInputStream(), true);
-//				rp.waitFor();
-//				regHog.join();
-//				installPath = regHog.getInstallPath();
-//			} catch (Exception rge) { 
-//				LOG.log(Level.SEVERE, "ERROR: unable to run REG to find the location of R: "+rge);
-//				return false;
-//			}
-//			if (installPath == null) {
-//				LOG.log(Level.SEVERE, "ERROR: canot find path to R. Make sure reg is available and R was installed with registry settings.");
-//				return false;
-//			}
-//			return launchRserve(installPath+"\\bin\\R.exe");
-//		}
-//		return (launchRserve("R") || /* try some common unix locations of R */
-//				((new File("/Library/Frameworks/R.framework/Resources/bin/R")).exists() && launchRserve("/Library/Frameworks/R.framework/Resources/bin/R")) ||
-//				((new File("/usr/local/lib/R/bin/R")).exists() && launchRserve("/usr/local/lib/R/bin/R")) ||
-//				((new File("/usr/lib/R/bin/R")).exists() && launchRserve("/usr/lib/R/bin/R")) ||
-//				((new File("/usr/local/bin/R")).exists() && launchRserve("/usr/local/bin/R")) ||
-//				((new File("/sw/bin/R")).exists() && launchRserve("/sw/bin/R")) ||
-//				((new File("/usr/common/bin/R")).exists() && launchRserve("/usr/common/bin/R")) ||
-//				((new File("/opt/bin/R")).exists() && launchRserve("/opt/bin/R"))
-//				);
-//	}
-//
-//	/** check whether Rserve is currently running (on local machine and default port).
-//		 @return <code>true</code> if local Rserve instance is running, <code>false</code> otherwise
-//	 */
-//	public static boolean isRserveRunning() {
-//		try {
-//			RConnection c = new RConnection();
-//			LOG.log(Level.INFO, "Rserve is running.");
-//			c.close();
-//			return true;
-//		} catch (Exception e) {
-//			LOG.log(Level.SEVERE, "First connect try failed with: " + e.getMessage());
-//		}
-//		return false;
-//	}
-//	
-//	// GLG HACK: Quick fix => Should be done a better way
-//	public static void killRserveInstance(RSessionWrapper rSession) throws RserveException {
-////		String osname = System.getProperty("os.name");
-////		if (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows")) {
-////			// Can't get R 'pskill' to work properly under Windows.
-////			try {
-////				Runtime.getRuntime().exec("TASKKILL /PID " + rSession.getPID() + " /F");
-////			} catch (IOException e) {
-////				throw new RserveException(null, null);
-////			}
-////		} else {
-//			final RConnection c2 = new RConnection();
-//			// SIGTERM might not be understood everywhere: so using SIGKILL signal, as well.
-//			if (c2.isConnected() && rSession.getPID() != -1) {
-//				c2.eval("tools::pskill("+ rSession.getPID() + ")"); //win
-//				//c2.eval("tools::pskill("+ this.rServePid + ", tools::SIGKILL)"); //nix
-//				c2.close();
-//			}
-////		}
-//	}
-	
-
-	public static void killRserveInstance(RSessionWrapper rSession) throws RserveException {
-
-		synchronized (RUtilities.R_SEMAPHORE) {
-
-			String osname = System.getProperty("os.name");
-			if (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows")) {
-				try {
-					Process p = Runtime.getRuntime().exec("TASKKILL /PID " + rSession.getPID() + " /F");
-					p.waitFor();
-				} catch (InterruptedException | IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else {
-				/**************************************************************
-				 * 
-				 * TODO: Treat the following 'synchronized' block differently for non Windows.
-				 * 
-				 * 1/ No need for synch, I guess??? Just set 'rSession.userCanceled = true;'
-				 * 2/ No need for newInstanceTry() => a simple 'c2 = new RConnection();'
-				 * 		should be fine.
-				 * 
-				 * 3/ Q: A simple 'kill -9 pid' wouldn't be preferable? NO!!
-				 * 
-				 */
-				//*final RConnection c2 = new RConnection();
-				Rsession session = Rsession.newInstanceTry(new LoggerStream(LOG, Level.INFO), null);
-				boolean success = false;
-				if (session != null) {
-					final RConnection c2 = session.connection;
-					// SIGTERM might not be understood everywhere: so using SIGKILL signal, as well.
-					if (c2 != null && c2.isConnected() && rSession.getPID() != -1) {
-						c2.eval("tools::pskill("+ rSession.getPID() + ")"); //win
-						//c2.eval("tools::pskill("+ this.rServePid + ", tools::SIGKILL)"); //nix
-						c2.close();
-						success = true;
-					}
-					session.end();
-					
-				}
-		//		if (!success)
-		//			throw new IllegalStateException(
-		//					"Could not start Rserve. Please check if R and Rserve are installed and path to the "
-		//							+ "libraries is set properly in the startMZmine script.");				
-			}
+	public static String getRhomePath() {
+		String rPath = getRexecutablePath();
+		if (rPath != null) {
+			if (RUtilities.isWindows()) { return rPath.substring(0, rPath.length() - 10); }
+			else { return rPath.substring(0, rPath.length() - 5); }
 		}
+		return null;
 	}
+
+
+	//	//** Rserve utilities
+	//	/**
+	//	 * rosuda
+	//	 */
+	//	/** simple utility that starts Rserve locally if it's not running already - see mainly <code>checkLocalRserve</code> method. It spits out quite some debugging outout of the console, so feel free to modify it for your application if desired.<p>
+	//	 <i>Important:</i> All applications should shutdown every Rserve that they started! Never leave Rserve running if you started it after your application quits since it may pose a security risk. Inform the user if you started an Rserve instance.
+	//	 */
+	//	/** shortcut to <code>launchRserve(cmd, "--no-save --slave", "--no-save --slave", false)</code> */
+	//	public static boolean launchRserve(String cmd) { return launchRserve(cmd, "--no-save --slave", "--no-save --slave --RS-enable-control", false); }
+	//
+	//	/** attempt to start Rserve. Note: parameters are <b>not</b> quoted, so avoid using any quotes in arguments
+	//		 @param cmd command necessary to start R
+	//		 @param rargs arguments are are to be passed to R
+	//		 @param rsrvargs arguments to be passed to Rserve
+	//		 @return <code>true</code> if Rserve is running or was successfully started, <code>false</code> otherwise.
+	//	 */
+	//	public static boolean launchRserve(String cmd, String rargs, String rsrvargs, boolean debug) {
+	//		try {
+	//			Process p;
+	//			boolean isWindows = false;
+	//			String osname = System.getProperty("os.name");
+	//			if (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows")) {
+	//				isWindows = true; /* Windows startup */
+	//				p = Runtime.getRuntime().exec("\""+cmd+"\" -e \"library(Rserve);Rserve("+(debug?"TRUE":"FALSE")+",args='"+rsrvargs+"',wait=TRUE)\" "+rargs);
+	//			} else /* unix startup */
+	//				p = Runtime.getRuntime().exec(new String[] {
+	//						"/bin/sh", "-c",
+	//						"echo 'library(Rserve);Rserve("+(debug?"TRUE":"FALSE")+",args=\""+rsrvargs+"\")'|"+cmd+" "+rargs
+	//				});
+	//			LOG.log(Level.INFO, "waiting for Rserve to start ... ("+p+")");
+	//			// we need to fetch the output - some platforms will die if you don't ...
+	//			StreamHog errorHog = new StreamHog(p.getErrorStream(), false);
+	//			StreamHog outputHog = new StreamHog(p.getInputStream(), false);
+	//			if (!isWindows) /* on Windows the process will never return, so we cannot wait */
+	//				p.waitFor();
+	////			LOG.log(Level.INFO, "call terminated, let us try to connect ...");
+	//		} catch (Exception x) {
+	//			LOG.log(Level.SEVERE, "failed to start Rserve process with "+x.getMessage());
+	//			return false;
+	//		}
+	//		int attempts = 5; /* try up to 5 times before giving up. We can be conservative here, because at this point the process execution itself was successful and the start up is usually asynchronous */
+	//		while (attempts > 0) {
+	//			try {
+	//				RConnection c = new RConnection();
+	//				LOG.log(Level.INFO, "Rserve is running.");
+	//				c.close();
+	//				return true;
+	//			} catch (Exception e2) {
+	//				LOG.log(Level.SEVERE, "Try failed with: "+e2.getMessage());
+	//			}
+	//			/* a safety sleep just in case the start up is delayed or asynchronous */
+	//			try { Thread.sleep(500); } catch (InterruptedException ix) { };
+	//			attempts--;
+	//		}
+	//		return false;
+	//	}
+	//
+	//	/** checks whether Rserve is running and if that's not the case it attempts to start it using the defaults for the platform where it is run on. This method is meant to be set-and-forget and cover most default setups. For special setups you may get more control over R with <<code>launchRserve</code> instead. */
+	//	public static boolean checkLocalRserve() {
+	//		if (isRserveRunning()) return true;
+	//		String osname = System.getProperty("os.name");
+	//		if (osname != null && osname.length() >= 7 && osname.substring(0,7).equals("Windows")) {
+	//			LOG.log(Level.INFO, "Windows: query registry to find where R is installed ...");
+	//			String installPath = null;
+	//			try {
+	//				Process rp = Runtime.getRuntime().exec("reg query HKLM\\Software\\R-core\\R");
+	//				StreamHog regHog = new StreamHog(rp.getInputStream(), true);
+	//				rp.waitFor();
+	//				regHog.join();
+	//				installPath = regHog.getInstallPath();
+	//			} catch (Exception rge) { 
+	//				LOG.log(Level.SEVERE, "ERROR: unable to run REG to find the location of R: "+rge);
+	//				return false;
+	//			}
+	//			if (installPath == null) {
+	//				LOG.log(Level.SEVERE, "ERROR: canot find path to R. Make sure reg is available and R was installed with registry settings.");
+	//				return false;
+	//			}
+	//			return launchRserve(installPath+"\\bin\\R.exe");
+	//		}
+	//		return (launchRserve("R") || /* try some common unix locations of R */
+	//				((new File("/Library/Frameworks/R.framework/Resources/bin/R")).exists() && launchRserve("/Library/Frameworks/R.framework/Resources/bin/R")) ||
+	//				((new File("/usr/local/lib/R/bin/R")).exists() && launchRserve("/usr/local/lib/R/bin/R")) ||
+	//				((new File("/usr/lib/R/bin/R")).exists() && launchRserve("/usr/lib/R/bin/R")) ||
+	//				((new File("/usr/local/bin/R")).exists() && launchRserve("/usr/local/bin/R")) ||
+	//				((new File("/sw/bin/R")).exists() && launchRserve("/sw/bin/R")) ||
+	//				((new File("/usr/common/bin/R")).exists() && launchRserve("/usr/common/bin/R")) ||
+	//				((new File("/opt/bin/R")).exists() && launchRserve("/opt/bin/R"))
+	//				);
+	//	}
+	//
+	//	/** check whether Rserve is currently running (on local machine and default port).
+	//		 @return <code>true</code> if local Rserve instance is running, <code>false</code> otherwise
+	//	 */
+	//	public static boolean isRserveRunning() {
+	//		try {
+	//			RConnection c = new RConnection();
+	//			LOG.log(Level.INFO, "Rserve is running.");
+	//			c.close();
+	//			return true;
+	//		} catch (Exception e) {
+	//			LOG.log(Level.SEVERE, "First connect try failed with: " + e.getMessage());
+	//		}
+	//		return false;
+	//	}
 
 }

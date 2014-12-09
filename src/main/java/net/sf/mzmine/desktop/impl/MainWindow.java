@@ -53,6 +53,9 @@ import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.parameters.impl.SimpleParameterSet;
 import net.sf.mzmine.util.ExceptionUtils;
 import net.sf.mzmine.util.ExitCode;
+import net.sf.mzmine.util.RSessionWrapper;
+import net.sf.mzmine.util.RSessionWrapperException;
+import net.sf.mzmine.util.RUtilities;
 import net.sf.mzmine.util.TextUtils;
 
 /**
@@ -298,6 +301,25 @@ public class MainWindow extends JFrame implements MZmineModule, Desktop,
 
 		this.dispose();
 
+		// Cleanup Rserve instances.
+		if (RUtilities.isWindows()) {	// Should with the app. anyway.
+			for (int i=0; i < RSessionWrapper.R_SESSIONS_REG.size(); ++i) {
+				try {
+					if (RSessionWrapper.R_SESSIONS_REG.get(i) != null)
+						RSessionWrapper.R_SESSIONS_REG.get(i).close(true);
+				} catch (RSessionWrapperException e) {
+					// Silent.
+				}
+			}
+		} else {
+			try {
+				if (RSessionWrapper.MASTER_SESSION != null)
+					RSessionWrapper.MASTER_SESSION.close(true);
+			} catch (RSessionWrapperException e) {
+				// Silent.
+			}
+		}
+		
 		logger.info("Exiting MZmine");
 
 		System.exit(0);

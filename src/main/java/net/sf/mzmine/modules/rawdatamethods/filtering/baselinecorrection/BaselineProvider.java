@@ -24,6 +24,7 @@ import org.rosuda.REngine.Rserve.RserveException;
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.util.RSessionWrapper;
+import net.sf.mzmine.util.RSessionWrapperException;
 
 /**
  * @description Base interface for providing a new way for computing baselines.
@@ -40,11 +41,12 @@ public interface BaselineProvider {
 
 	/**
 	 * Returns a baseline for correcting the given chromatogram using R
+	 * @throws RSessionWrapperException 
 	 * @throws BaselineCorrectionException 
 	 * @throws RserveException 
 	 * @throws InterruptedException 
 	 */
 	public double[] computeBaseline(final RSessionWrapper rSession, final RawDataFile origDataFile, 
-			final double[] chromatogram, ParameterSet parameters);
+			final double[] chromatogram, ParameterSet parameters) throws RSessionWrapperException;
 
 }

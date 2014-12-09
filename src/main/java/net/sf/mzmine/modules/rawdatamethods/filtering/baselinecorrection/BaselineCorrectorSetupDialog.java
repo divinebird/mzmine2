@@ -49,7 +49,9 @@ import net.sf.mzmine.taskcontrol.TaskEvent;
 import net.sf.mzmine.taskcontrol.TaskListener;
 import net.sf.mzmine.taskcontrol.TaskStatus;
 import net.sf.mzmine.util.RSessionWrapper;
+import net.sf.mzmine.util.RSessionWrapperException;
 import net.sf.mzmine.util.Range;
+import net.sf.mzmine.util.TextUtils;
 import net.sf.mzmine.util.RSessionWrapper.RengineType;
 
 import org.jfree.data.xy.XYDataset;
@@ -85,14 +87,14 @@ implements TaskListener {
 	KeyListener keyListener = new KeyListener() {
 		@Override
 		public void keyPressed(KeyEvent ke) {
-						
+
 			int keyCode = ke.getKeyCode();
 			if (keyCode == KeyEvent.VK_ESCAPE) {
 
 				LOG.info("<ESC> Presssed.");				
 				previewTask.kill();
 				hidePreview();
-				
+
 			}
 		}
 		@Override
@@ -145,7 +147,7 @@ implements TaskListener {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		this.baselineCorrector.collectCommonParameters(null);
 
 		// Default plot type. Initialized according to the chosen chromatogram type.
@@ -165,20 +167,20 @@ implements TaskListener {
 		private ProgressThread progressThread;
 
 		private RSessionWrapper rSession;
-		
+
 		private boolean userCanceled;
 
 
 		public PreviewTask(BaselineCorrectorSetupDialog dialog, TICPlot ticPlot, RawDataFile dataFile, Range rtRange, Range mzRange) {
-			
+
 			this.dialog = dialog;
 			this.ticPlot = ticPlot;
 			this.dataFile = dataFile;
 			this.rtRange = rtRange;
 			this.mzRange = mzRange;
-			
+
 			this.userCanceled = false;
-			
+
 			this.addTaskListener(dialog);
 		}
 
@@ -192,9 +194,11 @@ implements TaskListener {
 		@Override
 		public void run() {
 
+			errorMessage = null;
+
 			// Update the status of this task
 			setStatus(TaskStatus.PROCESSING);
-			
+
 			// Get parent module parameters
 			baselineCorrector.collectCommonParameters(null);
 
@@ -204,12 +208,9 @@ implements TaskListener {
 				this.rSession = new RSessionWrapper(baselineCorrector.getRengineType(), reqPackages);
 				this.rSession.open();
 			}
-			catch (Throwable t) {
-				String msg = t.getMessage();
-				LOG.log(Level.SEVERE, "Baseline correction error", t);
-				errorMessage = msg;
+			catch (RSessionWrapperException e) {
+				errorMessage = e.getMessage();
 				setStatus(TaskStatus.ERROR);
-				//this.rSession = null;
 				return;
 			}
 
@@ -219,10 +220,9 @@ implements TaskListener {
 			if (missingPackage != null) {
 				String msg = "The \"" + baselineCorrector.getName() + "\" requires " +
 						"the \"" + missingPackage + "\" R package, which couldn't be loaded - is it installed in R?";
-				LOG.log(Level.SEVERE, "Baseline correction error", new Throwable(msg));
+				LOG.log(Level.SEVERE, "Baseline correction error.");
 				errorMessage = msg;
 				setStatus(TaskStatus.ERROR);
-				//this.rSession = null;
 				return;
 			}
 
@@ -260,20 +260,39 @@ implements TaskListener {
 					ticPlot.addTICDataset(tlDataset);
 				}
 			} catch (IOException e) {				// Writing error
-				e.printStackTrace();
-				//baselineCorrector.initProgress(dataFile);
-			} catch (IllegalStateException e) {		// R computing error
-				if (!this.userCanceled)
-					e.printStackTrace();
+				if (!this.userCanceled) {
+					errorMessage = "'I/O error' during baseline correction. \n" + e.getMessage();
+				}
+			} 
+			catch (RSessionWrapperException e) {
+				if (!this.userCanceled) {
+					errorMessage = "'R computing error' during baseline correction. \n" + e.getMessage();
+				}
 			}
-			// Turn off R instance
-			this.rSession.close(false);
+
+			// Turn off R instance.
+			try {
+				if (!this.userCanceled) this.rSession.close(false);
+			}
+			catch (RSessionWrapperException e) {
+				if (!this.userCanceled) {
+					if (errorMessage == null) errorMessage = e.getMessage();
+				} else {
+					// User canceled: Silent.
+				}
+			}
 
 			// Task is over: Restore "parametersChanged" listeners
 			unset_VK_ESCAPE_KeyListener();
 
-			// We're done!
-			setStatus(TaskStatus.FINISHED);
+			if (errorMessage != null) {
+				// Handle error
+				setStatus(TaskStatus.ERROR);
+			} else {
+				// We're done!
+				setStatus(TaskStatus.FINISHED);
+			}
+
 		}
 
 		public void kill() {
@@ -281,19 +300,24 @@ implements TaskListener {
 			RawDataFile dataFile = getPreviewDataFile();
 			if (baselineCorrector != null && dataFile != null) { 
 
-					this.userCanceled = true;
-				
-					// Turn off R instance
-					this.rSession.close(true);
-				
-					// Cancel task
-					this.cancel();
-					// Release "ESC" listener
-					unset_VK_ESCAPE_KeyListener();
-					// Abort current processing thread
-					baselineCorrector.setAbortProcessing(dataFile, true); 
-					
-					LOG.info("Preview task canceled!");
+				this.userCanceled = true;
+
+				// Turn off R instance.
+				try {
+					if (this.rSession != null) this.rSession.close(true);
+				}
+				catch (RSessionWrapperException e) {
+					// User canceled: Silent.
+				}
+
+				// Cancel task.
+				this.cancel();
+				// Release "ESC" listener.
+				unset_VK_ESCAPE_KeyListener();
+				// Abort current processing thread
+				baselineCorrector.setAbortProcessing(dataFile, true); 
+
+				LOG.info("Preview task canceled!");
 			}
 
 		}
@@ -458,6 +482,7 @@ implements TaskListener {
 	@Override
 	public void statusChanged(TaskEvent e) {
 		if (e.getStatus() == TaskStatus.ERROR) {
+			LOG.log(Level.SEVERE, "Baseline correction error", e.getSource().getErrorMessage());
 			MZmineCore.getDesktop().displayErrorMessage( "Error of preview task ", e.getSource().getErrorMessage());
 			hidePreview();
 		} 

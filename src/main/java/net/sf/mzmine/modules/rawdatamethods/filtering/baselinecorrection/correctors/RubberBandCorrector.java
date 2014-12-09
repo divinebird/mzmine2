@@ -21,13 +21,11 @@ package net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.correc
 
 import javax.annotation.Nonnull;
 
-import org.rosuda.JRI.Rengine;
-
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrector;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.util.RSessionWrapper;
-import net.sf.mzmine.util.RUtilities;
+import net.sf.mzmine.util.RSessionWrapperException;
 
 /**
  * @description Rubber Band  baseline corrector. 
@@ -41,11 +39,12 @@ public class RubberBandCorrector extends BaselineCorrector {
 	
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "rJava", "Rserve", "hyperSpec" };
+		return new String[] { /*"rJava", "Rserve",*/ "hyperSpec" };
 	}
 
 	@Override
-	public double[] computeBaseline(final RSessionWrapper rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) {
+	public double[] computeBaseline(final RSessionWrapper rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) 
+			throws RSessionWrapperException {
 
 		// Rubber Band parameters.
 		double noise = parameters.getParameter(RubberBandCorrectorParameters.NOISE).getValue();
@@ -56,28 +55,21 @@ public class RubberBandCorrector extends BaselineCorrector {
 
 
 		final double[] baseline;
-		//synchronized (RUtilities.R_SEMAPHORE) {
 
-			try {
-				// Set chromatogram.
-				rSession.assignDoubleArray("chromatogram", chromatogram);
-				// Transform chromatogram.
-				rSession.eval("mat = matrix(chromatogram, nrow=1)");
-				rSession.eval("spc <- new (\"hyperSpec\", spc = mat, wavelength = as.numeric(seq(" + 1 + ", " + chromatogram.length + ")))");
-				// Auto noise ?
-				rSession.eval("noise <- " + ((autoNoise) ? "min(mat)" : "" + noise));
-				// Bend
-				rSession.eval("bend <- " + bend + " * wl.eval(spc, function(x) x^2, normalize.wl=normalize01)");
-				// Calculate baseline.
-				rSession.eval("baseline <- spc.rubberband(spc + bend, noise = noise, df = " + df + ", spline=" + (spline ? "T" : "F") + ") - bend");
-				rSession.eval("baseline <- orderwl(baseline)[[1]]");
-				baseline = rSession.collectDoubleArray("baseline");
-			}
-			catch (Throwable t) {
-				//t.printStackTrace();
-				throw new IllegalStateException("R error during baseline correction (" + this.getName() + ").", t);
-			}
-		//}
+		// Set chromatogram.
+		rSession.assignDoubleArray("chromatogram", chromatogram);
+		// Transform chromatogram.
+		rSession.eval("mat = matrix(chromatogram, nrow=1)");
+		rSession.eval("spc <- new (\"hyperSpec\", spc = mat, wavelength = as.numeric(seq(" + 1 + ", " + chromatogram.length + ")))");
+		// Auto noise ?
+		rSession.eval("noise <- " + ((autoNoise) ? "min(mat)" : "" + noise));
+		// Bend
+		rSession.eval("bend <- " + bend + " * wl.eval(spc, function(x) x^2, normalize.wl=normalize01)");
+		// Calculate baseline.
+		rSession.eval("baseline <- spc.rubberband(spc + bend, noise = noise, df = " + df + ", spline=" + (spline ? "T" : "F") + ") - bend");
+		rSession.eval("baseline <- orderwl(baseline)[[1]]");
+		baseline = rSession.collectDoubleArray("baseline");
+
 		return baseline;
 	}
 

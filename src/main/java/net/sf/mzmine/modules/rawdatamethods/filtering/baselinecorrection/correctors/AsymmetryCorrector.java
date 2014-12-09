@@ -24,6 +24,7 @@ import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrector;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.util.RSessionWrapper;
+import net.sf.mzmine.util.RSessionWrapperException;
 
 /**
  * @description Asymmetric baseline corrector. Estimates a trend based on asymmetric least squares.
@@ -37,11 +38,12 @@ public class AsymmetryCorrector extends BaselineCorrector {
 
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "rJava", "Rserve", "ptw" };
+		return new String[] { /*"rJava", "Rserve",*/ "ptw" };
 	}
 
 	@Override
-	public double[] computeBaseline(final RSessionWrapper rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) {
+	public double[] computeBaseline(final RSessionWrapper rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) 
+			throws RSessionWrapperException {
 
 		// Smoothing and asymmetry parameters.
 		final double smoothing = parameters.getParameter(AsymmetryCorrectorParameters.SMOOTHING).getValue();
@@ -49,20 +51,19 @@ public class AsymmetryCorrector extends BaselineCorrector {
 
 		// Compute baseline.
 		final double[] baseline;
-		//synchronized (RUtilities.R_SEMAPHORE) {
 
-			try {
-				// Set chromatogram.
-				rSession.assignDoubleArray("chromatogram", chromatogram);
-				// Calculate baseline.
-				rSession.eval("baseline <- asysm(chromatogram," + smoothing + ',' + asymmetry + ')');
-				baseline = rSession.collectDoubleArray("baseline");
-			}
-			catch (Throwable t) {
-				t.printStackTrace();
-				throw new IllegalStateException("R error during baseline correction (" + this.getName() + ").", t);
-			}
-		//}
+//		try {
+		// Set chromatogram.
+		rSession.assignDoubleArray("chromatogram", chromatogram);
+		// Calculate baseline.
+		rSession.eval("baseline <- asysm(chromatogram," + smoothing + ',' + asymmetry + ')');
+		baseline = rSession.collectDoubleArray("baseline");
+//		} 
+//		catch (Throwable t) {
+//			//t.printStackTrace();
+//			throw new IllegalStateException("R error during baseline correction (" + this.getName() + ").", t);
+//		}
+
 		return baseline;
 	}
 
