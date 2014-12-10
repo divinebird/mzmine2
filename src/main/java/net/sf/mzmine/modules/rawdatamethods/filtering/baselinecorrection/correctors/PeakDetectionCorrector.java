@@ -61,7 +61,7 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 		final double[] baseline;
 
 		// Set chromatogram.
-		rSession.assignDoubleArray("chromatogram", chromatogram);
+		rSession.assign("chromatogram", chromatogram);
 		// Transform chromatogram.
 		rSession.eval("mat = matrix(chromatogram, nrow=1)");
 
@@ -86,7 +86,7 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 		rSession.eval(
 				"if (!is.null(bl)) { baseline <- getBaseline(bl); } else { baseline <- matrix(rep(min(chromatogram), length(chromatogram)), nrow=1); }"
 				);
-		baseline = rSession.collectDoubleArray("baseline");
+		baseline = (double[]) rSession.collect("baseline");
 
 		return baseline;
 	}

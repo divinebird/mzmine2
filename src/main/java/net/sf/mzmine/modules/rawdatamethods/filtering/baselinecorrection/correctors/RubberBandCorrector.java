@@ -57,7 +57,7 @@ public class RubberBandCorrector extends BaselineCorrector {
 		final double[] baseline;
 
 		// Set chromatogram.
-		rSession.assignDoubleArray("chromatogram", chromatogram);
+		rSession.assign("chromatogram", chromatogram);
 		// Transform chromatogram.
 		rSession.eval("mat = matrix(chromatogram, nrow=1)");
 		rSession.eval("spc <- new (\"hyperSpec\", spc = mat, wavelength = as.numeric(seq(" + 1 + ", " + chromatogram.length + ")))");
@@ -68,7 +68,7 @@ public class RubberBandCorrector extends BaselineCorrector {
 		// Calculate baseline.
 		rSession.eval("baseline <- spc.rubberband(spc + bend, noise = noise, df = " + df + ", spline=" + (spline ? "T" : "F") + ") - bend");
 		rSession.eval("baseline <- orderwl(baseline)[[1]]");
-		baseline = rSession.collectDoubleArray("baseline");
+		baseline = (double[]) rSession.collect("baseline");
 
 		return baseline;
 	}

@@ -293,7 +293,7 @@ public class RSessionWrapper {
 	}
 
 
-	public static class InputFactory {
+	public static class InputREXPFactory {
 
 		public static <T> REXP getREXP(T object) {
 
@@ -321,7 +321,7 @@ public class RSessionWrapper {
 			return x;
 		}
 	}
-	public static class OutputFactory {
+	public static class OutputObjectFactory {
 
 		public static <T> Object getObject(REXP rexp) throws REXPMismatchException {
 
@@ -377,7 +377,7 @@ public class RSessionWrapper {
 		if (this.session != null && !this.userCanceled) {
 			String msg = "Rserve error: couldn't assign R object '" + objName + "' (instance '" + this.getPID() + "').";
 			try {
-				((RConnection) this.rEngine).assign(objName, InputFactory.getREXP(object));
+				((RConnection) this.rEngine).assign(objName, InputREXPFactory.getREXP(object));
 			} 
 			catch (REngineException e) {
 				throw new RSessionWrapperException(msg);
@@ -442,7 +442,7 @@ public class RSessionWrapper {
 		if (this.session != null && !this.userCanceled) {
 			String msg = "Rserve error: couldn't collect R object '" + objName + "' (instance '" + this.getPID() + "').";
 			try {
-				object = OutputFactory.getObject(((RConnection) this.rEngine).eval(objName));
+				object = OutputObjectFactory.getObject(((RConnection) this.rEngine).eval(objName));
 			} 
 			catch (RserveException | REXPMismatchException e) {
 				throw new RSessionWrapperException(msg);

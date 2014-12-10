@@ -54,10 +54,12 @@ public class AsymmetryCorrector extends BaselineCorrector {
 
 //		try {
 		// Set chromatogram.
-		rSession.assignDoubleArray("chromatogram", chromatogram);
+		//rSession.assignDoubleArray("chromatogram", chromatogram);
+		rSession.assign("chromatogram", chromatogram);
 		// Calculate baseline.
 		rSession.eval("baseline <- asysm(chromatogram," + smoothing + ',' + asymmetry + ')');
-		baseline = rSession.collectDoubleArray("baseline");
+		//baseline = rSession.collectDoubleArray("baseline");
+		baseline = (double[]) rSession.collect("baseline");
 //		} 
 //		catch (Throwable t) {
 //			//t.printStackTrace();

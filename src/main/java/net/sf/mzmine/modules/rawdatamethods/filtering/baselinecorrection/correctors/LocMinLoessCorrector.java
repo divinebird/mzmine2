@@ -56,7 +56,7 @@ public class LocMinLoessCorrector extends BaselineCorrector {
 		final double[] baseline;
 
 		// Set chromatogram.
-		rSession.assignDoubleArray("chromatogram", chromatogram);
+		rSession.assign("chromatogram", chromatogram);
 		// Transform chromatogram.
 		int mini = 1;
 		int maxi = chromatogram.length;
@@ -67,7 +67,7 @@ public class LocMinLoessCorrector extends BaselineCorrector {
 		// Calculate baseline.
 		rSession.eval("bseoff <- bslnoff(mat, method=\"" + method + "\", bw=" + bw + ", breaks=breaks, qntl=" + qntl + ")");
 		rSession.eval("baseline <- mat[,2] - bseoff[,2]");
-		baseline = rSession.collectDoubleArray("baseline");
+		baseline = (double[]) rSession.collect("baseline");
 
 		return baseline;
 	}
