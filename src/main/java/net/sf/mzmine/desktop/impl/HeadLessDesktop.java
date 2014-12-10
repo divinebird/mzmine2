@@ -106,26 +106,7 @@ public class HeadLessDesktop implements Desktop {
     @Override
     public @Nonnull
     ExitCode exitMZmine() {
-    	
-		// Cleanup Rserve instances.
-		if (RUtilities.isWindows()) {	// Should with the app. anyway.
-			for (int i=0; i < RSessionWrapper.R_SESSIONS_REG.size(); ++i) {
-				try {
-					if (RSessionWrapper.R_SESSIONS_REG.get(i) != null)
-						RSessionWrapper.R_SESSIONS_REG.get(i).close(true);
-				} catch (RSessionWrapperException e) {
-					// Silent.
-				}
-			}
-		} else {
-			try {
-				if (RSessionWrapper.MASTER_SESSION != null)
-					RSessionWrapper.MASTER_SESSION.close(true);
-			} catch (RSessionWrapperException e) {
-				// Silent.
-			}
-		}
-    	
+    	    	
 	System.exit(0);
 	return ExitCode.OK;
     }

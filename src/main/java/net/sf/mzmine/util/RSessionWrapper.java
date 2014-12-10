@@ -58,7 +58,7 @@ public class RSessionWrapper {
 
 	// Rsession semaphore - all usage of R engine must be synchronized using this semaphore.
 	public static final Object R_SESSION_SEMAPHORE = new Object();
-	public static RSessionWrapper MASTER_SESSION = null;
+	public static Rsession MASTER_SESSION = null;
 	public static final ArrayList<RSessionWrapper> R_SESSIONS_REG = new ArrayList<RSessionWrapper>();
 	public final static String R_HOME_KEY = "R_HOME";
 
@@ -179,6 +179,16 @@ public class RSessionWrapper {
 											+ "Please try to set it manually in the startMZmine script.");
 
 
+						// Under *NUX, create the very first Rserve instance, designed only to spawn other 
+						// (computing) instances (must be released when leaving the app.).
+						synchronized (RSessionWrapper.R_SESSION_SEMAPHORE) {
+							if (!isWindows && RSessionWrapper.MASTER_SESSION == null) {
+								RSessionWrapper.MASTER_SESSION = Rsession.newInstanceTry(logStream, null);
+								LOG.log(logLvl, ">> MASTER Rserve instance created (pid: '" + 
+										RSessionWrapper.MASTER_SESSION.eval("Sys.getpid()").asInteger() + "').");
+							}
+						}
+
 						// Need a new session to be completely instantiated before asking for another one
 						// otherwise, under Windows, the "multi-instance emulation" system will try several
 						// session startup on same port (aka: each new session port has to be in use/unavailable
@@ -191,9 +201,9 @@ public class RSessionWrapper {
 							//RserverConf conf = new RserverConf(null, -1, RSessionWrapper.RS_LOGIN, RSessionWrapper.RS_DYN_PWD, null);
 							RserverConf conf = null; 
 
-							if (isWindows || RSessionWrapper.R_SESSIONS_REG.size() == 0) {
+							// Then, spawn a new computing instance.
+							if (isWindows /*|| RSessionWrapper.R_SESSIONS_REG.size() == 0*/) {
 								this.session = Rsession.newInstanceTry(logStream, conf);
-								RSessionWrapper.MASTER_SESSION = this;
 							} else {
 								this.session = Rsession.newLocalInstance(logStream, null);
 							}
@@ -259,11 +269,8 @@ public class RSessionWrapper {
 			if (this.session != null && !this.userCanceled) {
 				int loaded = 0;
 				try {
-					loaded = ((RConnection) this.rEngine).eval(loadCode).asInteger(); //("library(" + packageName + ")");
-				} catch (RserveException e) {
-					// Remain silent if eval KO ("server down").
-					loaded = Integer.MIN_VALUE;
-				} catch (REXPMismatchException e) {
+					loaded = ((RConnection) this.rEngine).eval(loadCode).asInteger();
+				} catch (RserveException | REXPMismatchException e) {
 					// Remain silent if eval KO ("server down").
 					loaded = Integer.MIN_VALUE;
 				}
@@ -627,4 +634,22 @@ public class RSessionWrapper {
 		return (this.session != null && !this.userCanceled);
 	}
 
+	
+	public static void CleanAll() {
+		// Cleanup Rserve instances.
+		if (RUtilities.isWindows()) {	// Should die with the app. anyway.
+			for (int i=0; i < RSessionWrapper.R_SESSIONS_REG.size(); ++i) {
+				try {
+					if (RSessionWrapper.R_SESSIONS_REG.get(i) != null)
+						RSessionWrapper.R_SESSIONS_REG.get(i).close(true);
+				} catch (RSessionWrapperException e) {
+					// Silent.
+				}
+			}
+		} else {
+			if (RSessionWrapper.MASTER_SESSION != null)
+				RSessionWrapper.MASTER_SESSION.end();
+		}
+	}
+	
 }

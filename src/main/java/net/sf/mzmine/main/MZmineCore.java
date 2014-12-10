@@ -217,11 +217,14 @@ public final class MZmineCore {
 			// show the welcome message
 			desktop.setStatusBarText("Welcome to MZmine 2!");
 
-			// register shutdown hook only if we have GUI - we don't want to
-			// save configuration on exit if we only run a batch
-			ShutDownHook shutDownHook = new ShutDownHook();
-			Runtime.getRuntime().addShutdownHook(shutDownHook);
+			// Moved below since Headless version needs it too.
+//			// register shutdown hook only if we have GUI - we don't want to
+//			// save configuration on exit if we only run a batch
+//			ShutDownHook shutDownHook = new ShutDownHook();
+//			Runtime.getRuntime().addShutdownHook(shutDownHook);
 		}
+		ShutDownHook shutDownHook = new ShutDownHook();
+		Runtime.getRuntime().addShutdownHook(shutDownHook);
 
 		// if arguments were specified (= running without GUI), run the batch
 		// mode
