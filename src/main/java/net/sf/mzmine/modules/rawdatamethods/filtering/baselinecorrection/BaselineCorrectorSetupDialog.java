@@ -259,12 +259,8 @@ implements TaskListener {
 					XYDataset tlDataset = createBaselineDataset(dataFile, newDataFile, getPlotType());
 					ticPlot.addTICDataset(tlDataset);
 				}
-			} catch (IOException e) {				// Writing error
-				if (!this.userCanceled) {
-					errorMessage = "'I/O error' during baseline correction. \n" + e.getMessage();
-				}
 			} 
-			catch (RSessionWrapperException e) {
+			catch (IOException | RSessionWrapperException e) {
 				if (!this.userCanceled) {
 					errorMessage = "'R computing error' during baseline correction. \n" + e.getMessage();
 				}
@@ -286,7 +282,7 @@ implements TaskListener {
 			unset_VK_ESCAPE_KeyListener();
 
 			if (errorMessage != null) {
-				// Handle error
+				// Handle error.
 				setStatus(TaskStatus.ERROR);
 			} else {
 				// We're done!

@@ -164,12 +164,7 @@ public class BaselineCorrectionTask extends AbstractTask {
 			if (!this.userCanceled) this.rSession.close(false);
 
 		} 
-		catch (IOException e) {				// Writing error
-			if (!this.userCanceled) {
-				errorMessage = "'I/O error' during baseline correction. \n" + e.getMessage();
-			}
-		} 
-		catch (RSessionWrapperException e) {
+		catch (IOException | RSessionWrapperException e) {
 			if (!this.userCanceled) {
 				errorMessage = "'R computing error' during baseline correction. \n" + e.getMessage();
 			}

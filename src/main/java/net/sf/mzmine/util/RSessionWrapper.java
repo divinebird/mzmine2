@@ -24,7 +24,11 @@ import net.sf.mzmine.util.RUtilities.StreamGobbler;
 import org.math.R.RserverConf;
 import org.math.R.Rsession;
 import org.rosuda.JRI.Rengine;
+import org.rosuda.REngine.REXP;
+import org.rosuda.REngine.REXPDouble;
+import org.rosuda.REngine.REXPInteger;
 import org.rosuda.REngine.REXPMismatchException;
+import org.rosuda.REngine.REXPString;
 import org.rosuda.REngine.REngineException;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
@@ -214,15 +218,16 @@ public class RSessionWrapper {
 					if (this.session != null && this.userCanceled) {
 						this.close(true);
 						return;
+					} else {
+
+						// Keep an opened instance and store the related PID.
+						this.rServePid = session.connection.eval("Sys.getpid()").asInteger();
+						this.rEngine = session.connection;
+						LOG.log(logLvl, "Rserve: started instance with pid '" + this.rServePid + "'.");
+
+						// Quick test
+						LOG.log(logLvl, ((RConnection) this.rEngine).eval("R.version.string").asString());		
 					}
-
-					// Keep an opened instance and store the related PID.
-					this.rServePid = session.connection.eval("Sys.getpid()").asInteger();
-					this.rEngine = session.connection;
-					LOG.log(logLvl, "Rserve: started instance with pid '" + this.rServePid + "'.");
-
-					// Quick test
-					LOG.log(logLvl, ((RConnection) this.rEngine).eval("R.version.string").asString());					
 				}
 			}
 		}
@@ -248,22 +253,27 @@ public class RSessionWrapper {
 				if (((Rengine) this.rEngine).eval(loadCode).asBool().isFALSE()) {
 					throw new RSessionWrapperException(errorMsg);
 				}
+				LOG.log(logLvl, "Loaded package: '" + packageName + "'.");
 			}
 		} else {
-			int loaded = 0;
-			try {
-				loaded = ((RConnection) this.rEngine).eval(loadCode).asInteger(); //("library(" + packageName + ")");
-			} catch (RserveException e) {
-				// Remain silent if eval KO ("server down").
-				loaded = Integer.MIN_VALUE;
-			} catch (REXPMismatchException e) {
-				// Remain silent if eval KO ("server down").
-				loaded = Integer.MIN_VALUE;
+			if (this.session != null && !this.userCanceled) {
+				int loaded = 0;
+				try {
+					loaded = ((RConnection) this.rEngine).eval(loadCode).asInteger(); //("library(" + packageName + ")");
+				} catch (RserveException e) {
+					// Remain silent if eval KO ("server down").
+					loaded = Integer.MIN_VALUE;
+				} catch (REXPMismatchException e) {
+					// Remain silent if eval KO ("server down").
+					loaded = Integer.MIN_VALUE;
+				}
+				// Throw loading failure only if eval OK (package not found).
+				// ("server down" case will be handled soon enough).
+				if (loaded == 0)
+					if (!this.userCanceled) throw new RSessionWrapperException(errorMsg);
+
+				LOG.log(logLvl, "Loaded package: '" + packageName + "'.");
 			}
-			// Throw loading failure only if eval OK (package not found).
-			// ("server down" case will be handled soon enough).
-			if (loaded == 0)
-				if (!this.userCanceled) throw new RSessionWrapperException(errorMsg);
 		}
 	}
 
@@ -274,7 +284,6 @@ public class RSessionWrapper {
 			for (int i=0; i < this.reqPackages.length; ++i) {
 				reqPackage = this.reqPackages[i];
 				this.loadPackage(this.reqPackages[i]);
-				LOG.log(logLvl, "Loaded package: '" + reqPackage + "'.");
 			}
 			return null;
 		} catch (Exception e) {
@@ -284,6 +293,64 @@ public class RSessionWrapper {
 	}
 
 
+	public static class InputFactory {
+
+		public static <T> REXP getREXP(T object) {
+
+			REXP x = null;
+
+			//			// First check if we have primitive (single or array) or Object
+			//			boolean isPrimitiveOrWrapped = ClassUtils.isPrimitiveOrWrapper(object.getClass());
+
+			if (object instanceof Integer) {
+				x = new REXPInteger((Integer)object);
+			} 
+			else if (object instanceof int[]) {
+				x = new REXPInteger((int[])object);
+			} 
+			else if (object instanceof Double) {
+				x = new REXPDouble((Double)object);
+			}
+			else if (object instanceof double[]) {
+				x = new REXPDouble((double[])object);
+			} 
+			else if (object instanceof String) {
+				x = new REXPString((String)object);
+			}
+
+			return x;
+		}
+	}
+	public static class OutputFactory {
+
+		public static <T> Object getObject(REXP rexp) throws REXPMismatchException {
+
+			Object o = null;
+
+			if (rexp instanceof REXPInteger) {
+				int[] obj = rexp.asIntegers();
+				if (obj == null) return null;
+
+				if (obj.length == 0) o = null;
+				else if (obj.length == 1) o = obj[0];
+				else o = obj;
+			} 
+			else if (rexp instanceof REXPDouble) {
+				double[] obj = rexp.asDoubles();
+				if (obj == null) return null;
+
+				if (obj.length == 0) o = null;
+				else if (obj.length == 1) o = obj[0];
+				else o = obj;
+			} 
+			else if (rexp instanceof REXPString) {
+				o = rexp.asString();
+			}
+
+			return o;
+		}
+	}
+
 	// TODO: Templatize: assignDoubleArray<T>(String objName, T obj)
 	public void assignDoubleArray(String objName, double[] dArray) throws RSessionWrapperException {
 
@@ -292,14 +359,30 @@ public class RSessionWrapper {
 				((Rengine) this.rEngine).assign(objName, dArray);
 			}
 		} else {
+			if (this.session != null && !this.userCanceled) {
+				String msg = "Rserve error: couldn't assign R object '" + objName + "' (instance '" + this.getPID() + "').";
+				try {
+					((RConnection) this.rEngine).assign(objName, dArray);
+				} 
+				catch (REngineException e) {
+					throw new RSessionWrapperException(msg);
+				} catch (Exception e) {
+					throw new RSessionWrapperException(e.getMessage());
+				}
+			}
+		}
+	}
+	public <T> void assign(String objName, T object) throws RSessionWrapperException {
+
+		if (this.session != null && !this.userCanceled) {
 			String msg = "Rserve error: couldn't assign R object '" + objName + "' (instance '" + this.getPID() + "').";
 			try {
-				((RConnection) this.rEngine).assign(objName, dArray);
-			} catch (REngineException e) {
-				if (!this.userCanceled) throw new RSessionWrapperException(msg);
+				((RConnection) this.rEngine).assign(objName, InputFactory.getREXP(object));
+			} 
+			catch (REngineException e) {
+				throw new RSessionWrapperException(msg);
 			} catch (Exception e) {
-				// Remain silent if session canceled.
-				if (!this.userCanceled) throw new RSessionWrapperException(e.getMessage());
+				throw new RSessionWrapperException(e.getMessage());
 			}
 		}
 	}
@@ -311,15 +394,16 @@ public class RSessionWrapper {
 				((Rengine) this.rEngine).eval(rCode);
 			}
 		} else {
-			String msg = "Rserve error: couldn't eval R code '" + rCode + "' (instance '" + this.getPID() + "').";
-			try {
-				((RConnection) this.rEngine).eval(rCode);
-				//this.session.eval(rCode, true);
-			} catch (RserveException e) {
-				if (!this.userCanceled) throw new RSessionWrapperException(msg);
-			} catch (Exception e) {
-				// Remain silent if session canceled.
-				if (!this.userCanceled) throw new RSessionWrapperException(e.getMessage());
+			if (this.session != null && !this.userCanceled) {
+				String msg = "Rserve error: couldn't eval R code '" + rCode + "' (instance '" + this.getPID() + "').";
+				try {
+					((RConnection) this.rEngine).eval(rCode);
+				}
+				catch (RserveException e) {
+					throw new RSessionWrapperException(msg);
+				} catch (Exception e) {
+					throw new RSessionWrapperException(e.getMessage());
+				}
 			}
 		}
 	}
@@ -331,21 +415,42 @@ public class RSessionWrapper {
 				return ((Rengine) this.rEngine).eval(objName).asDoubleArray();
 			}
 		} else {
-			String msg = "Rserve error: couldn't collect R object '" + objName + "' (instance '" + this.getPID() + "').";
-			try {
-				return ((RConnection) this.rEngine).eval(objName).asDoubles();
-			} 
-			// Note: Removed "multi-catch" usage for java 1.6 backward compatibility.
-			catch (RserveException /*| REXPMismatchException*/ e) {
-				if (!this.userCanceled) throw new RSessionWrapperException(msg);
-			} catch (REXPMismatchException e) {
-				if (!this.userCanceled) throw new RSessionWrapperException(msg);
-			} catch (Exception e) {
-				// Remain silent if session canceled.
-				if (!this.userCanceled) throw new RSessionWrapperException(e.getMessage());
+			if (this.session != null && !this.userCanceled) {
+				String msg = "Rserve error: couldn't collect R object '" + objName + "' (instance '" + this.getPID() + "').";
+				try {
+					return ((RConnection) this.rEngine).eval(objName).asDoubles();
+				} 
+				catch (RserveException | REXPMismatchException e) {
+					throw new RSessionWrapperException(msg);
+				} catch (Exception e) {
+					throw new RSessionWrapperException(e.getMessage());
+				}
 			}
 		}
 		return null;
+	}
+	/**
+	 * Casting the result to the correct type is left to the user.
+	 * @param objName
+	 * @return
+	 * @throws RSessionWrapperException
+	 */
+	public Object collect(String objName) throws RSessionWrapperException {
+
+		Object object = null;
+
+		if (this.session != null && !this.userCanceled) {
+			String msg = "Rserve error: couldn't collect R object '" + objName + "' (instance '" + this.getPID() + "').";
+			try {
+				object = OutputFactory.getObject(((RConnection) this.rEngine).eval(objName));
+			} 
+			catch (RserveException | REXPMismatchException e) {
+				throw new RSessionWrapperException(msg);
+			} catch (Exception e) {
+				throw new RSessionWrapperException(e.getMessage());
+			}
+		}
+		return object;
 	}
 
 
@@ -374,7 +479,8 @@ public class RSessionWrapper {
 
 			try {
 
-				LOG.log(logLvl, "Rserve: try terminate instance with pid '" + this.rServePid + "'.");
+				LOG.log(logLvl, "Rserve: try terminate " + ((this.rServePid == -1) ? "pending" : "") + " session" + 
+						((this.rServePid == -1) ? "..." : " with pid '" + this.rServePid + "'..."));
 
 				// Avoid 'Rsession' to 'printStackTrace' while catching 'SocketException'
 				// (since we are about to brute force kill the Rserve instance, such that
@@ -386,9 +492,11 @@ public class RSessionWrapper {
 				}
 				RSessionWrapper.unMuteStdOutErr();
 
+				LOG.log(logLvl, "Rserve: terminated " + ((this.rServePid == -1) ? "pending" : "") + " session" + 
+						((this.rServePid == -1) ? "." : " with pid '" + this.rServePid + "'."));
+
 				// Release session (prevents from calling close again on a closed instance).
 				this.session = null;
-				LOG.log(logLvl, "Rserve: terminated instance with pid '" + this.rServePid + "'.");
 
 			} catch (Throwable t) {
 				// Adapt/refactor message accordingly to the way the termination was provoked:
@@ -514,6 +622,9 @@ public class RSessionWrapper {
 	}
 	public Rsession getSession() {
 		return this.session;
+	}
+	public boolean isSessionRunning() {
+		return (this.session != null && !this.userCanceled);
 	}
 
 }
