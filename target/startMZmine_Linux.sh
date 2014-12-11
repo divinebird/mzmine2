@@ -50,11 +50,14 @@ echo "$JAVA_PARAMETERS" -classpath $CLASS_PATH $MAIN_CLASS "$@" | xargs $JAVA_CO
 
 
 # Cleaning Rserve instance if MZmine was killed ungracefully (ex. kill -9 ...)
-pidfile = $(pwd)/rs_pid.txt
+echo "$(pwd)"
+pidfile=$(pwd)/rs_pid.txt
+echo "$pidfile"
 # File exists (Rserve was used during MZmine session)
-if [ -e "$(pidfile)" ]
+if [ -e "$pidfile" ]
 then
-	value=`cat "$(pidfile)"`
+	echo "Found pidfile: $pidfile"
+	value=`cat "$pidfile"`
 	#echo "Main Rserve instance pid was '$value'..."
 	##kill -9 $value		# Kills only the main instance (not the children)
 	# Kill the whole remaining tree from main instance
@@ -65,7 +68,7 @@ then
 	else
 		echo "Killing Rserve tree from main instance / pid: '$value'."
 		kill -9 -$value
-		rm "$(pidfile)"
+		rm "$pidfile"
 	fi
 fi
 
