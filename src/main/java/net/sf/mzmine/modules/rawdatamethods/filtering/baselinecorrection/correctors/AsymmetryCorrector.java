@@ -23,8 +23,8 @@ import javax.annotation.Nonnull;
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrector;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RSessionWrapper;
-import net.sf.mzmine.util.RSessionWrapperException;
+import net.sf.mzmine.util.R.RSessionWrapper;
+import net.sf.mzmine.util.R.RSessionWrapperException;
 
 /**
  * @description Asymmetric baseline corrector. Estimates a trend based on asymmetric least squares.

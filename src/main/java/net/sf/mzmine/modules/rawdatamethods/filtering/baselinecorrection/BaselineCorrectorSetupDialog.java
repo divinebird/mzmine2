@@ -48,11 +48,11 @@ import net.sf.mzmine.taskcontrol.AbstractTask;
 import net.sf.mzmine.taskcontrol.TaskEvent;
 import net.sf.mzmine.taskcontrol.TaskListener;
 import net.sf.mzmine.taskcontrol.TaskStatus;
-import net.sf.mzmine.util.RSessionWrapper;
-import net.sf.mzmine.util.RSessionWrapperException;
 import net.sf.mzmine.util.Range;
 import net.sf.mzmine.util.TextUtils;
-import net.sf.mzmine.util.RSessionWrapper.RengineType;
+import net.sf.mzmine.util.R.RSessionWrapper;
+import net.sf.mzmine.util.R.RSessionWrapperException;
+import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
 
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;

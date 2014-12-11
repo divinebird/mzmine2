@@ -32,10 +32,10 @@ import net.sf.mzmine.datamodel.impl.SimpleScan;
 import net.sf.mzmine.main.MZmineCore;
 import net.sf.mzmine.modules.MZmineModule;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RSessionWrapper;
-import net.sf.mzmine.util.RSessionWrapperException;
 import net.sf.mzmine.util.Range;
-import net.sf.mzmine.util.RSessionWrapper.RengineType;
+import net.sf.mzmine.util.R.RSessionWrapper;
+import net.sf.mzmine.util.R.RSessionWrapperException;
+import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
 
 /**
  * @description Abstract corrector class for baseline correction. Has to be specialized via the

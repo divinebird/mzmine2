@@ -32,10 +32,10 @@ import net.sf.mzmine.parameters.parametertypes.MZTolerance;
 import net.sf.mzmine.taskcontrol.AbstractTask;
 import net.sf.mzmine.taskcontrol.TaskStatus;
 import net.sf.mzmine.util.DataPointSorter;
-import net.sf.mzmine.util.RUtilities;
 import net.sf.mzmine.util.Range;
 import net.sf.mzmine.util.SortingDirection;
 import net.sf.mzmine.util.SortingProperty;
+import net.sf.mzmine.util.R.RUtilities;
 
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.Rengine;

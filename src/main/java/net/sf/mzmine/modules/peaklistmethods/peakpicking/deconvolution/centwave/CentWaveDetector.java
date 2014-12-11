@@ -27,8 +27,8 @@ import net.sf.mzmine.datamodel.Feature;
 import net.sf.mzmine.modules.peaklistmethods.peakpicking.deconvolution.PeakResolver;
 import net.sf.mzmine.modules.peaklistmethods.peakpicking.deconvolution.ResolvedPeak;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RUtilities;
 import net.sf.mzmine.util.Range;
+import net.sf.mzmine.util.R.RUtilities;
 
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.Rengine;

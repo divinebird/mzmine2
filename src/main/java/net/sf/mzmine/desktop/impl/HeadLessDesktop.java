@@ -32,9 +32,9 @@ import net.sf.mzmine.desktop.Desktop;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.parameters.impl.SimpleParameterSet;
 import net.sf.mzmine.util.ExitCode;
-import net.sf.mzmine.util.RSessionWrapper;
-import net.sf.mzmine.util.RSessionWrapperException;
-import net.sf.mzmine.util.RUtilities;
+import net.sf.mzmine.util.R.RSessionWrapper;
+import net.sf.mzmine.util.R.RSessionWrapperException;
+import net.sf.mzmine.util.R.RUtilities;
 
 public class HeadLessDesktop implements Desktop {
 

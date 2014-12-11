@@ -23,8 +23,8 @@ import org.rosuda.REngine.Rserve.RserveException;
 
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RSessionWrapper;
-import net.sf.mzmine.util.RSessionWrapperException;
+import net.sf.mzmine.util.R.RSessionWrapper;
+import net.sf.mzmine.util.R.RSessionWrapperException;
 
 /**
  * @description Base interface for providing a new way for computing baselines.

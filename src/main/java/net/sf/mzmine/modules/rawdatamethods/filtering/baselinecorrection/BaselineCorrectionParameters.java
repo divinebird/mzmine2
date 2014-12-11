@@ -41,7 +41,8 @@ import net.sf.mzmine.parameters.parametertypes.ModuleComboParameter;
 import net.sf.mzmine.parameters.parametertypes.RawDataFilesParameter;
 import net.sf.mzmine.parameters.parametertypes.StringParameter;
 import net.sf.mzmine.util.ExitCode;
-import net.sf.mzmine.util.RSessionWrapper.RengineType;
+import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
+
 import java.util.logging.Logger;
 
 /**
