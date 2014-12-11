@@ -33,6 +33,7 @@ import net.sf.mzmine.modules.peaklistmethods.dataanalysis.rtmzplots.cvplot.CVPlo
 import net.sf.mzmine.modules.peaklistmethods.dataanalysis.rtmzplots.logratioplot.LogratioPlotModule;
 import net.sf.mzmine.modules.peaklistmethods.filtering.duplicatefilter.DuplicateFilterModule;
 import net.sf.mzmine.modules.peaklistmethods.filtering.rowsfilter.RowsFilterModule;
+import net.sf.mzmine.modules.peaklistmethods.filtering.shapefilter.ShapeFilterModule;
 import net.sf.mzmine.modules.peaklistmethods.gapfilling.peakfinder.PeakFinderModule;
 import net.sf.mzmine.modules.peaklistmethods.gapfilling.samerange.SameRangeGapFillerModule;
 import net.sf.mzmine.modules.peaklistmethods.identification.adductsearch.AdductSearchModule;
@@ -139,6 +140,8 @@ public class MZmineModulesList {
 	    // Peak list filtering
 	    DuplicateFilterModule.class,
 	    RowsFilterModule.class,
+	    // GLG HACK: Add peaks "shape filtering" features to peak list methods.
+	    ShapeFilterModule.class,
 	    
 	    
 	    // GLG HACK: Add peaks "Merging" features to peak list methods.

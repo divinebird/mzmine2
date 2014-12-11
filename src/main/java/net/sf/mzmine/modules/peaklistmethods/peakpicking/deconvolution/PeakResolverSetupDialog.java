@@ -251,9 +251,10 @@ public class PeakResolverSetupDialog extends ParameterSetupDialog {
         comboPeakList = new JComboBox();
         comboPeakList.setFont(COMBO_FONT);
         for (final PeakList peakList : peakLists) {
-            if (peakList.getNumberOfRawDataFiles() == 1) {
+        	// GLG HACK: Fire in the hole => commented the limit of one datafile per peaklist
+            /**if (peakList.getNumberOfRawDataFiles() == 1) {**/
                 comboPeakList.addItem(peakList);
-            }
+            /**}**/
         }
         comboPeakList.addActionListener(this);
 

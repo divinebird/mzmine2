@@ -25,11 +25,14 @@ import net.sf.mzmine.datamodel.RawDataFileWriter;
 import net.sf.mzmine.datamodel.Scan;
 import net.sf.mzmine.datamodel.PeakList.PeakListAppliedMethod;
 import net.sf.mzmine.datamodel.impl.SimpleDataPoint;
+import net.sf.mzmine.datamodel.impl.SimpleFeature;
 import net.sf.mzmine.datamodel.impl.SimplePeakList;
 import net.sf.mzmine.datamodel.impl.SimplePeakListAppliedMethod;
 import net.sf.mzmine.datamodel.impl.SimplePeakListRow;
 import net.sf.mzmine.datamodel.impl.SimpleScan;
 import net.sf.mzmine.main.MZmineCore;
+import net.sf.mzmine.modules.peaklistmethods.filtering.shapefilter.FilterShapeModel;
+import net.sf.mzmine.modules.peaklistmethods.filtering.shapefilter.ShapeFilterTask;
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.parameters.parametertypes.MZTolerance;
 import net.sf.mzmine.parameters.parametertypes.RTTolerance;
@@ -181,7 +184,16 @@ class PeakMergerTask extends AbstractTask {
 			// Start from most intense peak
 			Feature oldPeak = groupedPeaks.get(0);
 			// Get scan numbers of interest
-			List<Integer> scan_nums = Arrays.asList(ArrayUtils.toObject(oldPeak.getScanNumbers()));
+			//			List<Integer> scan_nums = Arrays.asList(ArrayUtils.toObject(oldPeak.getScanNumbers()));
+			// Do not get scan nums from highest peak, but from the whole group (largest RT range)
+			// TODO: use "getPeaksGroupByRT()" with an RTrange as parameter passed in reference, instead of looping again:
+			int minScanNumber = Integer.MAX_VALUE;
+			int maxScanNumber = Integer.MIN_VALUE;
+			for (int i=0; i < groupedPeaks.size(); i++) {
+				int[] scanNums = groupedPeaks.get(i).getScanNumbers(); 
+				if (scanNums[0] < minScanNumber) { minScanNumber = scanNums[0]; }
+				if (scanNums[scanNums.length-1] > maxScanNumber) { maxScanNumber = scanNums[scanNums.length-1]; }
+			}
 
 
 			////double maxHeight = oldPeak.getHeight();
@@ -195,7 +207,7 @@ class PeakMergerTask extends AbstractTask {
 			// Look for dataPoint related to this peak to the left
 			int scanNumber = originScanNumber;
 			scanNumber--;
-			while (/*scanNumber > 0 &&*/ scanNumber >= scan_nums.get(0))
+			while (scanNumber >= minScanNumber) //(/*scanNumber > 0 &&*/ scanNumber >= scan_nums.get(0))
 			{
 				scan = this.workingDataFile.getScan(scanNumber);
 
@@ -212,16 +224,16 @@ class PeakMergerTask extends AbstractTask {
 
 				// Switch accordingly to option "Only DETECTED peaks"
 				//**dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
-//				if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
-//				{
-//					double tic = 0.0;
-//					for (final Feature gp : groupedPeaks) {
-//						DataPoint dp = gp.getDataPoint(scan.getScanNumber());
-//						if (dp != null) tic += dp.getIntensity();
-//					}
-//					dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
-//				} 
-//				else 
+				//				if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
+				//				{
+				//					double tic = 0.0;
+				//					for (final Feature gp : groupedPeaks) {
+				//						DataPoint dp = gp.getDataPoint(scan.getScanNumber());
+				//						if (dp != null) tic += dp.getIntensity();
+				//					}
+				//					dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
+				//				} 
+				//				else 
 				{
 					dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
 				}
@@ -244,16 +256,16 @@ class PeakMergerTask extends AbstractTask {
 			scan = this.workingDataFile.getScan(originScanNumber);
 			// Switch accordingly to option "Only DETECTED peaks"
 			//**dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
-//			if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
-//			{
-//				double tic = 0.0;
-//				for (final Feature gp : groupedPeaks) {
-//					DataPoint dp = gp.getDataPoint(scan.getScanNumber());
-//					if (dp != null) tic += dp.getIntensity();
-//				}
-//				dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
-//			} 
-//			else 
+			//			if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
+			//			{
+			//				double tic = 0.0;
+			//				for (final Feature gp : groupedPeaks) {
+			//					DataPoint dp = gp.getDataPoint(scan.getScanNumber());
+			//					if (dp != null) tic += dp.getIntensity();
+			//				}
+			//				dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
+			//			} 
+			//			else 
 			{
 				dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);				
 			}
@@ -278,7 +290,7 @@ class PeakMergerTask extends AbstractTask {
 			// Look to the right
 			//scanNumber = originScanNumber;
 			scanNumber++;
-			while (/*scanNumber <= totalScanNumber &&*/ scanNumber <= scan_nums.get(scan_nums.size()-1)) 
+			while (scanNumber <= maxScanNumber) //(/*scanNumber <= totalScanNumber &&*/ scanNumber <= scan_nums.get(scan_nums.size()-1)) 
 			{
 				scan = this.workingDataFile.getScan(scanNumber);
 
@@ -295,16 +307,16 @@ class PeakMergerTask extends AbstractTask {
 
 				// Switch accordingly to option "Only DETECTED peaks"
 				//**dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
-//				if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
-//				{
-//					double tic = 0.0;
-//					for (final Feature gp : groupedPeaks) {
-//						DataPoint dp = gp.getDataPoint(scan.getScanNumber());
-//						if (dp != null) tic += dp.getIntensity();
-//					}
-//					dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
-//				} 
-//				else 
+				//				if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
+				//				{
+				//					double tic = 0.0;
+				//					for (final Feature gp : groupedPeaks) {
+				//						DataPoint dp = gp.getDataPoint(scan.getScanNumber());
+				//						if (dp != null) tic += dp.getIntensity();
+				//					}
+				//					dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
+				//				} 
+				//				else 
 				{
 					dataPoint = getMergedDataPointFromPeakGroup(scan, groupedPeaks, mzRange);
 				}
@@ -327,7 +339,7 @@ class PeakMergerTask extends AbstractTask {
 			//					.getMostIntenseFragmentScanNumber());
 
 
-			// Create new peak list row for this merged peak 
+			// Get peak list row to be updated
 			PeakListRow oldRow = peakList.getPeakRow(oldPeak);
 
 			// TODO: Might be VIOLENT (quick and dirty => to be verified)
@@ -355,6 +367,243 @@ class PeakMergerTask extends AbstractTask {
 		if (nb_empty_peaks > 0)
 			logger.log(Level.WARNING, "Skipped \"" + nb_empty_peaks + "\" empty peaks !");
 
+
+//		//---
+//
+//		// Remove or dispatch bad shaped peaks
+//		// 1- Remove if not overlapping with others
+//		// 2- Dispatch if overlapping
+//
+//		//getBadShapedPeakListRows
+//		PeakList badPeaksList = ShapeFilterTask.getBadShapedPeakListRows(mergedPeakList, "", 1.5, 0.0, FilterShapeModel.Triangle);
+//		//Collections.sort(badPeaksList, new PeakSorter(SortingProperty.RT, SortingDirection.Ascending));
+//		logger.log(Level.INFO, "Found out \"" + badPeaksList.getNumberOfRows() + "\" bad rows !");
+//
+//		for (int ind=0; ind < badPeaksList.getPeaks(this.workingDataFile).length; ++ind) {
+//			logger.log(Level.INFO, "Bad peak found: \"" +  badPeaksList.getPeaks(this.workingDataFile)[ind] + "\" !");
+//		}
+//		
+//		ArrayList<MergedPeak> goodPeaksList = new ArrayList<MergedPeak>();
+//		// Add all rows but bad ones
+//		int nbBad = 0;
+//		for (int i=0; i < mergedPeakList.getNumberOfRows(); ++i) {
+//			PeakListRow aRow = mergedPeakList.getRow(i);
+//			MergedPeak aPeak = (MergedPeak) aRow.getBestPeak();
+//			//if (!(Arrays.asList(badPeaksList.getRows()).contains(aRow))) {
+//			if (badPeaksList.getPeakRow(aPeak) == null) {
+//				goodPeaksList.add(aPeak);
+//				aPeak.setRowID(aRow.getID());
+//			} else {
+//				nbBad++;
+//			}
+//		}
+//		logger.log(Level.INFO, "Bad peaks to be removed = \"" + nbBad + "\" !");
+//
+//		int nbBugs = 0, nbBugs2 = 0;
+//		
+//		for (int ind=0; ind < badPeaksList.getPeaks(this.workingDataFile).length; ++ind) {
+//
+//			Feature badPeak = badPeaksList.getPeaks(this.workingDataFile)[ind];
+//			//Feature[] overlapPeaks = mergedPeakList.getPeaksInsideScanRange(this.workingDataFile, badPeak.getRawDataPointsRTRange());
+//			ArrayList<Feature> overlapPeaks = getOverlappingPeaks(badPeak, goodPeaksList);
+//			
+//			logger.log(Level.INFO, "Removing peak \"" + badPeak + "\" !");
+//			logger.log(Level.INFO, "Found out \"" + overlapPeaks.size() + "\" overlapping peaks !");
+//
+//			// Get overlapping peaks (other than itself or another bad peak).
+//			ArrayList<Feature> overlapPeaksList = overlapPeaks; //new ArrayList<Feature>(Arrays.asList(overlapPeaks));
+//			logger.log(Level.INFO, "Found out \"" + overlapPeaksList.size() + "\" overlapping peaks !");
+//			//peaksArrayList.remove(badPeak);
+//			for (int j=overlapPeaksList.size()-1; j >= 0; --j) {
+//				Feature aPeak = overlapPeaksList.get(j);
+//				if (badPeaksList.getPeakRow(aPeak) != null) {				// Another bad one?
+//					overlapPeaksList.remove(aPeak);
+//					logger.log(Level.INFO, "Refused overlapping peak: \"" + aPeak + "\" !");
+//				}
+//			}
+//
+//			logger.log(Level.INFO, "Found out \"" + overlapPeaksList.size() + "\" remaining overlapping peaks !");
+//			if (overlapPeaksList.size() == 0) { continue; }
+//
+//			// Dispatch equally the bad peak's intensities to remaining overlapping ones
+//			// (Scan by scan)
+//			//double intensity_frag = badPeak.getHeight() / peaksArrayList.size();
+//			for (int j=0; j < overlapPeaksList.size(); ++j) {
+//				Feature aPeak = overlapPeaksList.get(j);
+//
+//				logger.log(Level.INFO, "Bad peak: " + badPeak);
+//				logger.log(Level.INFO, "Overlapping peak: " + aPeak);
+//
+//				int[] scanNums = aPeak.getScanNumbers();
+//				int[] badScanNums = badPeak.getScanNumbers();
+//
+//				final MergedPeak newPeak = new MergedPeak(this.workingDataFile);
+//
+//				for (int k=0; k < scanNums.length; ++k) {
+//					DataPoint dp;
+//					double mz = aPeak.getDataPoint(scanNums[k]).getMZ();
+//					double intensity = aPeak.getDataPoint(scanNums[k]).getIntensity();
+//					//if (scanNums.contains(badScanNums[k])) {
+//					if (Arrays.asList(ArrayUtils.toObject(badScanNums)).contains(scanNums[k])) {
+//						// Find number of good peak overlapping at this particular scan. 
+//						// That gives the number of good ones the bad one should contribute to at 
+//						// this specific scan.
+//						int nbGoodOverlappers = getOverlappingPeaksAtScan(scanNums[k], goodPeaksList).size();
+//						intensity += badPeak.getDataPoint(scanNums[k]).getIntensity() / (double) nbGoodOverlappers;
+//					} 
+//					dp = new SimpleDataPoint(mz, intensity);			
+//					newPeak.addMzPeak(scanNums[k], dp);
+//				}
+////				// Extended dispatched merge.
+////				final MergedPeak newPeak = new MergedPeak(this.workingDataFile);
+////				
+////				// Merge scans: Use HashSet to preserve unicity
+////				HashSet<Integer> hs = new HashSet<Integer>();
+////				hs.addAll(Arrays.asList(ArrayUtils.toObject(scanNums)));
+////				hs.addAll(Arrays.asList(ArrayUtils.toObject(badScanNums)));
+////				// Sort HashSet of scans (TreeSet) by ascending order
+////				List<Integer> scanNumsExtended = new ArrayList<Integer>(new TreeSet<Integer>(hs)); 
+////				
+////				double mz = aPeak.getMZ();
+////				double intensity;
+////				for (int k=0; k < scanNumsExtended.size(); ++k) {
+////					DataPoint dp;
+////					
+////					boolean isInGood = Arrays.asList(ArrayUtils.toObject(scanNums)).contains(scanNumsExtended.get(k));
+////					boolean isInBad = Arrays.asList(ArrayUtils.toObject(badScanNums)).contains(scanNumsExtended.get(k));
+////					
+////					if (isInGood && isInBad) {
+////						// Find number of good peak overlapping at this particular scan. 
+////						// That gives the number of good ones the bad one should contribute to at 
+////						// this specific scan.
+////						int nbGoodOverlappers = getOverlappingPeaksAtScan(scanNums[k], goodPeaksList).size();
+////						intensity = aPeak.getDataPoint(scanNums[k]).getIntensity() + 
+////								badPeak.getDataPoint(scanNums[k]).getIntensity() / (double) nbGoodOverlappers;
+////					} else if (isInGood) {
+////						intensity = aPeak.getDataPoint(scanNums[k]).getIntensity();
+////					} else {
+////						intensity = aPeak.getDataPoint(badScanNums[k]).getIntensity();
+////					}
+////					dp = new SimpleDataPoint(mz, intensity);			
+////					newPeak.addMzPeak(scanNumsExtended.get(k), dp);
+////				}
+//				
+//				
+//				// Finishing the new peak
+//				newPeak.finishMergedPeak();
+//				logger.log(Level.INFO, "NEW peak with numScans: \"" + newPeak.getScanNumbers().length + "\" !");
+//
+//				logger.log(Level.INFO, "NEW peak with RT range: \"" + newPeak.getRawDataPointsRTRange() + "\" !");
+//				//				this.updateMergedPeakList(mergedPeakList.getPeakRow(aPeak), newPeak);
+//				//				// Update pointers ??????????????????
+//				//				//peaksArrayList.set(j, newPeak);
+//				// Add all remaining rows to a new peak list.
+//
+////				final PeakListRow row = mergedPeakList.getPeakRow(aPeak);
+////
+////				// Copy the peak list row.
+////				final PeakListRow newRow = new SimplePeakListRow(row.getID());
+////				PeakUtils.copyPeakListRowProperties(row, newRow);
+////
+////				// Copy the peaks.
+////				for (final Feature peak : row.getPeaks()) {
+////					newRow.addPeak(peak.getDataFile(), newPeak);
+////				}
+////
+////				// Replace row.
+//////				PeakListRow oldRow = newPeakList.getPeakRow(aPeak);
+//////				if (oldRow != null) { newPeakList.removeRow(oldRow); }
+//////				newPeakList.addRow(newRow);
+////				Integer id = new Integer(newRow.getID());
+////				int pos = processedRowsID.indexOf(id);
+////				if (pos == -1) {
+////					processedRowsID.add(id);
+////					processedRows.add(newRow);
+////				} else {
+////					processedRows.set(pos, newRow);		
+////				}
+//				
+//				int pos = goodPeaksList.indexOf(aPeak);
+//				if (pos != -1) { 
+//					newPeak.setRowID(goodPeaksList.get(pos).getRowID()); 
+//					goodPeaksList.set(pos, newPeak);
+//				}
+//				else { nbBugs++; }
+//			}
+//
+//
+//		}
+//		
+//		logger.log(Level.INFO, "nbBugs: \"" + nbBugs + "\" !");
+//		logger.log(Level.INFO, "nbBugs2: \"" + nbBugs2 + "\" !");
+//
+//		logger.log(Level.INFO, "Bad peaks to be removed = \"" + nbBad + "\" !");
+//
+//		//		// Remove bad rows from mergedPeakList.
+//		//		int removedPeaks = 0;
+//		//		for (int i=mergedPeakList.getNumberOfRows()-1; i >= 0; --i) {
+//		//			if (mergedPeakList.getRow(i) == null) {
+//		//				mergedPeakList.removeRow(i);
+//		//				removedPeaks++;
+//		//			}
+//		//		}
+//		//		logger.log(Level.INFO, "Removed \"" + removedPeaks + "\" peaks !");
+//		//		for (int i=mergedPeakList.getNumberOfRows()-1; i >= 0; --i) {
+//		
+//		// Create the new peak list.
+//		final PeakList newPeakList = new SimplePeakList(mergedPeakList.getName(), this.workingDataFile);
+//
+//		logger.log(Level.INFO, "Bad num rows: \"" + badPeaksList.getNumberOfRows() + "\" bad rows !");
+//		logger.log(Level.INFO, "Old num rows: \"" + mergedPeakList.getNumberOfRows() + "\" !");
+//		logger.log(Level.INFO, "1- Done num rows: \"" + goodPeaksList.size() + "\" !");
+//		logger.log(Level.INFO, "2- Done num rows: \"" + newPeakList.getNumberOfRows() + "\" !");
+//		int addedNumRows = 0;
+////		for (int i = 0; !isCanceled() && i < processedRows.size(); i++) {
+////			
+////			final PeakListRow row = processedRows.get(i);
+////
+////			if (row != null) {
+////
+////				newPeakList.addRow(row);
+////				addedNumRows++;
+////			}
+////			
+////		}
+//		for (int i = 0; !isCanceled() && i < goodPeaksList.size(); i++) {
+//
+//			final MergedPeak p = goodPeaksList.get(i);
+//			//final PeakListRow row = mergedPeakList.getPeakRow(p);
+//			final PeakListRow newRow = new SimplePeakListRow(p.getRowID());
+//			
+//			//**if (row != null) {
+//			//if (row != null && !(processedRowsID.contains(new Integer(row.getID())))) {
+//
+//				// Copy the peak list row.
+//				//**final PeakListRow newRow = new SimplePeakListRow(p.getRowID());
+//			//**PeakUtils.copyPeakListRowProperties(row, newRow);
+//
+////				// Copy the peaks.
+////				for (final Feature peak : row.getPeaks()) {
+////
+////					final Feature newPeak = new SimpleFeature(peak);
+////					PeakUtils.copyPeakProperties(peak, newPeak);
+////					newRow.addPeak(peak.getDataFile(), newPeak);
+////				}
+//				// Add the peak.
+//				newRow.addPeak(p.getDataFile(), p);
+//
+//				newPeakList.addRow(newRow);
+//				addedNumRows++;
+//			//**}
+//		}
+//		logger.log(Level.INFO, "Added num rows: \"" + addedNumRows + "\" !");
+//		
+//		mergedPeakList = newPeakList;
+//		logger.log(Level.INFO, "New num rows: \"" + mergedPeakList.getNumberOfRows() + "\" !");
+//
+//		//---
+
+
 		// Setup and add new peakList to the project
 		this.finishMergedPeakList();
 
@@ -365,6 +614,35 @@ class PeakMergerTask extends AbstractTask {
 		logger.info("Finished RT peaks merger on " + peakList);
 		setStatus(TaskStatus.FINISHED);
 
+	}
+	
+	private ArrayList<Feature> getOverlappingPeaks(Feature peak, ArrayList<MergedPeak> peaksList) {
+		
+		ArrayList<Feature> overlapPeaks = new ArrayList<Feature> ();
+		for (int i=0; i < peaksList.size(); ++i) {
+			Feature aPeak = peaksList.get(i);
+			// If given 'peak' contains at least one scan of 'aPeak', or the other way, they're said
+			// overlapping.
+			if (peak.getRawDataPointsRTRange().contains(aPeak.getRawDataPointsRTRange().getMin())
+					|| peak.getRawDataPointsRTRange().contains(aPeak.getRawDataPointsRTRange().getMax())
+					|| aPeak.getRawDataPointsRTRange().contains(peak.getRawDataPointsRTRange().getMin())
+					|| aPeak.getRawDataPointsRTRange().contains(peak.getRawDataPointsRTRange().getMax())) {
+				overlapPeaks.add(aPeak);
+			}
+		}
+		return overlapPeaks;
+	}
+	private ArrayList<Feature> getOverlappingPeaksAtScan(int scanNum, ArrayList<MergedPeak> peaksList) {
+		
+		ArrayList<Feature> overlapPeaks = new ArrayList<Feature> ();
+		for (int i=0; i < peaksList.size(); ++i) {
+			Feature aPeak = peaksList.get(i);
+			// If given 'peak' has the specified scan.
+			if (Arrays.asList(ArrayUtils.toObject(aPeak.getScanNumbers())).contains(scanNum)) {
+				overlapPeaks.add(aPeak);
+			}
+		}
+		return overlapPeaks;
 	}
 
 	static final public Double getDoublePrecision() {
@@ -403,16 +681,16 @@ class PeakMergerTask extends AbstractTask {
 							///*** dp = ScanUtils.findBasePeak(refScan, mzRange);
 							//- if (this.useOnlyDetectedPeaks && this.cumulativeComputing)
 							//- {
-								double tic = 0.0;
-								//- for (final Feature gp : groupedPeaks) {
-								for (int j=0; j < peaksGroup.size(); j++) {
-									DataPoint dp_0 = peaksGroup.get(j).getDataPoint(scanNumber);
-									if (dp_0 != null) tic += dp_0.getIntensity();
-								}
-								//- dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
-								dp = new SimpleDataPoint(mz, tic);
-								if (dp != null)	{ l_data_pts.add(dp); }
-								break;
+							double tic = 0.0;
+							//- for (final Feature gp : groupedPeaks) {
+							for (int j=0; j < peaksGroup.size(); j++) {
+								DataPoint dp_0 = peaksGroup.get(j).getDataPoint(scanNumber);
+								if (dp_0 != null) tic += dp_0.getIntensity();
+							}
+							//- dataPoint = new SimpleDataPoint(oldPeak.getMZ(), tic);
+							dp = new SimpleDataPoint(mz, tic);
+							if (dp != null)	{ l_data_pts.add(dp); }
+							break;
 							//- }
 						}
 						// Get the top data point in the user-specified window
@@ -543,11 +821,11 @@ class PeakMergerTask extends AbstractTask {
 					scan_nums_ok.add(0, scan_nums.get(it));
 				} while ((it != 0) && (scan_nums.get(it-1) == scan_nums.get(it) - 1));
 			}
-//			--it;
-//			while ((it != 0) && (scan_nums.get(it) == scan_nums.get(it+1) - 1)) {
-//				scan_nums_ok.add(0, scan_nums.get(it));
-//				--it;
-//			}
+			//			--it;
+			//			while ((it != 0) && (scan_nums.get(it) == scan_nums.get(it+1) - 1)) {
+			//				scan_nums_ok.add(0, scan_nums.get(it));
+			//				--it;
+			//			}
 			// Get right side of the sequence, if applicable
 			it = scan_nums.indexOf(mainScanNum);
 			if ((it < scan_nums.size()-1) && (scan_nums.get(it+1) == scan_nums.get(it) + 1)) {
@@ -556,11 +834,11 @@ class PeakMergerTask extends AbstractTask {
 					scan_nums_ok.add(scan_nums.get(it));
 				} while ((it + 1 - scan_nums.size() != 0) && (scan_nums.get(it+1) == scan_nums.get(it) + 1));
 			}
-//			++it;
-//			while ((it - scan_nums.size() != 0) && (scan_nums.get(it) == scan_nums.get(it-1) + 1)) {
-//				scan_nums_ok.add(scan_nums.get(it));
-//				++it;
-//			}
+			//			++it;
+			//			while ((it - scan_nums.size() != 0) && (scan_nums.get(it) == scan_nums.get(it-1) + 1)) {
+			//				scan_nums_ok.add(scan_nums.get(it));
+			//				++it;
+			//			}
 			logger.log(Level.INFO, "Valid sequence is: " + scan_nums_ok.toString());
 
 			double rt_min = this.workingDataFile.getScan(scan_nums_ok.get(0)).getRetentionTime();
@@ -722,7 +1000,7 @@ class PeakMergerTask extends AbstractTask {
 				MZmineCore.getCurrentProject().addFile(tmpRawDataFile);
 
 				working_rdf = tmpRawDataFile;
-
+				
 			} catch (IOException e) {
 				logger.log(Level.SEVERE, e.getMessage());
 				e.printStackTrace();
@@ -748,9 +1026,15 @@ class PeakMergerTask extends AbstractTask {
 		// RDFs list to array
 		Object[] lst2arr = l_rdfs.toArray();
 		RawDataFile[] rdfs = Arrays.copyOf(lst2arr, lst2arr.length, RawDataFile[].class);
+		
+		
 
 		// Create PL
 		this.mergedPeakList = new SimplePeakList(peakList + " " + suffix, rdfs);
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		// TODO: This is temporary, do not let it like this:
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		this.mergedPeakList = new SimplePeakList(peakList + " " + suffix, this.workingDataFile);
 
 		//		this.mergedPeakList = new SimplePeakList(peakList + " " + suffix, this.workingDataFile);
 	}

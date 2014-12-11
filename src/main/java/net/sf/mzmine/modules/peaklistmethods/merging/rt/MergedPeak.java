@@ -51,17 +51,31 @@ public class MergedPeak implements Feature {
 
 	// Array of scan numbers
 	private int[] scanNumbers;
+	
+	private int rowId;
+	
+	public int getRowID() {
+		return this.rowId;
+	}
+	public void setRowID(int rowID) {
+		this.rowId = rowID;
+	}
 
 	/**
 	 * Initializes this MergedPeak
 	 */
-	public MergedPeak(RawDataFile dataFile) {
+	public MergedPeak(RawDataFile dataFile, int rowId) {
 		this.dataFile = dataFile;
+		
+		this.rowId = rowId;
 
 		// Create a copy, not a reference
 		rawDataPointsRTRange = new Range(dataFile.getDataRTRange(1));
 
 		dataPointsMap = new Hashtable<Integer, DataPoint>();
+	}
+	public MergedPeak(RawDataFile dataFile) {
+		this(dataFile, -1);
 	}
 
 	/**

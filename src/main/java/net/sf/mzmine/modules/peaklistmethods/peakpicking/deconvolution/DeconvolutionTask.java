@@ -102,12 +102,13 @@ public class DeconvolutionTask extends AbstractTask {
             LOG.info("Started peak deconvolution on " + originalPeakList);
 
             // Check raw data files.
-            if (originalPeakList.getNumberOfRawDataFiles() > 1) {
+        	// GLG HACK: Fire in the hole => commented the limit of one datafile per peaklist
+            /**if (originalPeakList.getNumberOfRawDataFiles() > 1) {
 
                 setStatus(TaskStatus.ERROR);
                 errorMessage = "Peak deconvolution can only be performed on peak lists with a single raw data file";
 
-            } else {
+            } else {**/
 
                 try {
 
@@ -136,7 +137,7 @@ public class DeconvolutionTask extends AbstractTask {
                     errorMessage = t.getMessage();
                     LOG.log(Level.SEVERE, "Peak deconvolution error", t);
                 }
-            }
+            /**}**/
         }
     }
 
@@ -150,7 +151,9 @@ public class DeconvolutionTask extends AbstractTask {
     private PeakList resolvePeaks(final PeakList peakList) {
 
         // Get data file information.
-        final RawDataFile dataFile = peakList.getRawDataFile(0);
+    	// GLG HACK: Fire in the hole => commented the limit of one datafile per peaklist
+    	/**final RawDataFile dataFile = peakList.getRawDataFile(0);**/
+        final RawDataFile dataFile = peakList.getRawDataFile(peakList.getRawDataFiles().length-1);
         final int[] scanNumbers = dataFile.getScanNumbers(1);
         final int scanCount = scanNumbers.length;
         final double[] retentionTimes = new double[scanCount];
