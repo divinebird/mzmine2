@@ -444,13 +444,13 @@
             <scope>provided</scope>
         </dependency>
         
+		<!-- REMOVED!
 		<dependency>
 			<groupId>Rsession</groupId>
 			<artifactId>Rsession</artifactId>
 			<version>1.9</version>
 		</dependency>
 
-		<!-- REMOVED!
 		<dependency>
 			<groupId>RCaller</groupId>
 			<artifactId>RCaller</artifactId>

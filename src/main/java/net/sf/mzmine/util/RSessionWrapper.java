@@ -20,9 +20,9 @@
 package net.sf.mzmine.util;
 
 import net.sf.mzmine.util.RUtilities.StreamGobbler;
+import net.sf.mzmine.util.R.Rsession.RserverConf;
+import net.sf.mzmine.util.R.Rsession.Rsession;
 
-import org.math.R.RserverConf;
-import org.math.R.Rsession;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPDouble;

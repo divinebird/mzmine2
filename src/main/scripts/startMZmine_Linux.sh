@@ -50,7 +50,7 @@ echo "$JAVA_PARAMETERS" -classpath $CLASS_PATH $MAIN_CLASS "$@" | xargs $JAVA_CO
 
 
 # Cleaning Rserve instance if MZmine was killed ungracefully (ex. kill -9 ...)
-pidfile=$(pwd)/rs_pid.txt
+pidfile="$(pwd)/rs_pid.txt"
 # File exists (Rserve was used during MZmine session)
 if [ -e "$pidfile" ]
 then
