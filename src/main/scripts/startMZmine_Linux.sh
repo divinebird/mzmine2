@@ -47,3 +47,21 @@ echo "-version" | xargs $JAVA_COMMAND
 
 # This command starts the Java Virtual Machine
 echo "$JAVA_PARAMETERS" -classpath $CLASS_PATH $MAIN_CLASS "$@" | xargs $JAVA_COMMAND
+
+
+# Cleaning Rserve instance if MZmine was killed ungracefully (ex. kill -9 ...)
+if [ -e "$(pwd)/rs_pid.txt" ]
+then
+	value=`cat $(pwd)/rs_pid.txt`
+	#echo "Main Rserve instance pid was '$value'..."
+	##kill -9 $value		# Kills only the main instance (not the children)
+	# Kill the whole remaining tree from main instance
+	#kill -9 -$value		# Kills the whole tree
+	if [ -z "$value" ]
+	then
+		echo "No remaining instances of Rserve."
+	else
+		echo "Killing Rserve tree from main instance / pid: '$value'."
+		kill -9 -$value
+	fi
+fi

@@ -185,7 +185,7 @@ public class RSessionWrapper {
 							if (!isWindows && RSessionWrapper.MASTER_SESSION == null) {
 								RSessionWrapper.MASTER_SESSION = Rsession.newInstanceTry(logStream, null);
 								LOG.log(logLvl, ">> MASTER Rserve instance created (pid: '" + 
-										RSessionWrapper.MASTER_SESSION.eval("Sys.getpid()").asInteger() + "').");
+										RSessionWrapper.MASTER_SESSION.connection.eval("Sys.getpid()").asInteger() + "').");
 							}
 						}
 
