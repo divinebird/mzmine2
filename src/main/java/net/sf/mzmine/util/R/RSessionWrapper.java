@@ -192,10 +192,8 @@ public class RSessionWrapper {
 
 								// We absolutely need real new instance on a new port here
 								// (in case other Rserve, not spawned by MZmine, are running already).
-								//								RserverConf conf = RserverConf.newLocalInstance(null, false);
-								//								RSessionWrapper.MASTER_SESSION = new Rsession(logStream, conf, false);//Rsession.newInstanceTry(logStream, null);
-								//								RSessionWrapper.MASTER_PORT = conf.port;
-								//								int masterPID = RSessionWrapper.MASTER_SESSION.connection.eval("Sys.getpid()").asInteger();
+								// Note: this also fixes potential issues when running several instances of MZmine
+								// 			concurrently.
 								int port = RserverConf.RserverDefaultPort;
 								while (!RserverConf.isPortAvailable(port)) { port++; }
 								//								props.setProperty("port", ""+port);
