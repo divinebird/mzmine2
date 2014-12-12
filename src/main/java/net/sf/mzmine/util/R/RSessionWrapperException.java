@@ -17,13 +17,14 @@
  * Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-package net.sf.mzmine.util;
+package net.sf.mzmine.util.R;
 
 /**
  * @description TODO
  * @author Gauthier Boaglio
  * @date Dec 07, 2014
  */
+@SuppressWarnings("serial")
 public class RSessionWrapperException extends Exception {
 
 	/**

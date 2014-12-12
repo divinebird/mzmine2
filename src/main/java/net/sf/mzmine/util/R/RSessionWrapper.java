@@ -17,12 +17,13 @@
  * Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-package net.sf.mzmine.util;
+package net.sf.mzmine.util.R;
 
-import net.sf.mzmine.util.RUtilities.StreamGobbler;
+import net.sf.mzmine.util.LoggerStream;
+import net.sf.mzmine.util.TextUtils;
+import net.sf.mzmine.util.R.RUtilities.StreamGobbler;
 import net.sf.mzmine.util.R.Rsession.RserverConf;
 import net.sf.mzmine.util.R.Rsession.Rsession;
-
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPDouble;
@@ -59,8 +60,10 @@ public class RSessionWrapper {
 	// Rsession semaphore - all usage of R engine must be synchronized using this semaphore.
 	public static final Object R_SESSION_SEMAPHORE = new Object();
 	public static Rsession MASTER_SESSION = null;
+	private static int MASTER_PORT = -1;
 	public static final ArrayList<RSessionWrapper> R_SESSIONS_REG = new ArrayList<RSessionWrapper>();
 	public final static String R_HOME_KEY = "R_HOME";
+	public static String R_HOME = null;
 
 	private final Object R_DUMMY_SEMAPHORE = new Object();
 
@@ -68,9 +71,9 @@ public class RSessionWrapper {
 	private static final Level logLvl = Level.FINEST;
 	private static PrintStream logStream = new LoggerStream(LOG, rsLogLvl);
 
-	//	// Enhanced remote security stuffs.
-	//	private static final String RS_LOGIN = "MZmineUser";
-	//	private static final String RS_DYN_PWD = String.valueOf(java.util.UUID.randomUUID());
+	// Enhanced remote security stuffs.
+	private static final String RS_LOGIN = "MZmineUser";
+	private static final String RS_DYN_PWD = String.valueOf(java.util.UUID.randomUUID());
 
 	public enum RengineType {
 
@@ -137,8 +140,6 @@ public class RSessionWrapper {
 
 	private void getRengineInstance() throws RSessionWrapperException {
 
-		LOG.log(logLvl, "'getRengineInstance()' of type: '" + this.rEngineType.toString() + "'.");
-
 		try {
 			if (this.rEngineType == RengineType.JRIengine) {
 				// Get JRI engine unique instance.
@@ -157,35 +158,57 @@ public class RSessionWrapper {
 				if (this.rEngine == null) {
 
 					boolean isWindows = RUtilities.isWindows();
-					String rHome = System.getenv(R_HOME_KEY);
+					if (R_HOME == null) { R_HOME = System.getenv(R_HOME_KEY); }
 
 					try {
 
 						// If retrieving 'R_HOME' from environment failed, try to find out automatically.
 						// (Since 'Rsession.newInstanceTry()', checks the environment first).
 						// @See RUtilities.getRhomePath().
-						if (rHome == null || !(new File(rHome).exists())) {
+						if (R_HOME == null || !(new File(R_HOME).exists())) {
 							// Set "R_HOME" system property.
-							rHome = RUtilities.getRhomePath();
-							if (rHome != null) {
-								System.setProperty(R_HOME_KEY, rHome);
+							R_HOME = RUtilities.getRhomePath();
+							if (R_HOME != null) {
+								System.setProperty(R_HOME_KEY, R_HOME);
 								LOG.log(logLvl, "'" + R_HOME_KEY + "' set to '" + System.getProperty(R_HOME_KEY) + "'");
 							}
 						}
-						if (rHome == null)
-							throw new IllegalArgumentException(
+						if (R_HOME == null)
+							throw new RSessionWrapperException(
 									"Correct path to the R installation directory could not be obtained "
 											+ "neither automatically, nor via the '" + R_HOME_KEY + "' environment variable. "
 											+ "Please try to set it manually in the startMZmine script.");
 
 
-						// Under *NUX, create the very first Rserve instance, designed only to spawn other 
-						// (computing) instances (must be released when leaving the app.).
+						//						// Security...
+						//						Properties props = new Properties();
+						//						props.setProperty("remote", "enable");
+						//						props.setProperty("auth", "required");
+
+						// Under *NUX, create the very first Rserve instance (kind of proxy), designed 
+						// only to spawn other (computing) instances (Released at app. exit - see note below).
 						synchronized (RSessionWrapper.R_SESSION_SEMAPHORE) {
 							if (!isWindows && RSessionWrapper.MASTER_SESSION == null) {
-								RSessionWrapper.MASTER_SESSION = Rsession.newInstanceTry(logStream, null);
+
+								// We absolutely need real new instance on a new port here
+								// (in case other Rserve, not spawned by MZmine, are running already).
+								//								RserverConf conf = RserverConf.newLocalInstance(null, false);
+								//								RSessionWrapper.MASTER_SESSION = new Rsession(logStream, conf, false);//Rsession.newInstanceTry(logStream, null);
+								//								RSessionWrapper.MASTER_PORT = conf.port;
+								//								int masterPID = RSessionWrapper.MASTER_SESSION.connection.eval("Sys.getpid()").asInteger();
+								int port = RserverConf.RserverDefaultPort;
+								while (!RserverConf.isPortAvailable(port)) { port++; }
+								//								props.setProperty("port", ""+port);
+								RserverConf conf = new RserverConf("localhost", port, RS_LOGIN, RS_DYN_PWD, null); //props);
+								RSessionWrapper.MASTER_PORT = port;
+								RSessionWrapper.MASTER_SESSION = Rsession.newInstanceTry(logStream, conf);
+								int masterPID = RSessionWrapper.MASTER_SESSION.connection.eval("Sys.getpid()").asInteger();
+
 								LOG.log(logLvl, ">> MASTER Rserve instance created (pid: '" + 
-										RSessionWrapper.MASTER_SESSION.connection.eval("Sys.getpid()").asInteger() + "').");
+										masterPID + "' | port '" + RSessionWrapper.MASTER_PORT + "').");
+
+								// Note: no need to 'register()' that particular instance. It is attached to the
+								// 			Rdaemon which will die/stop with the app. anyway.
 							}
 						}
 
@@ -198,14 +221,31 @@ public class RSessionWrapper {
 						Object rSemaphore = (isWindows) ? RSessionWrapper.R_SESSION_SEMAPHORE : this.R_DUMMY_SEMAPHORE;
 						synchronized (rSemaphore) { //RUtilities.R_SEMAPHORE) {
 
-							//RserverConf conf = new RserverConf(null, -1, RSessionWrapper.RS_LOGIN, RSessionWrapper.RS_DYN_PWD, null);
-							RserverConf conf = null; 
+							RserverConf conf;
+							if (isWindows) {
+								//**conf = null; 
+								// Win: Need to get a new port every time.
+								int port = RserverConf.RserverDefaultPort;
+								while (!RserverConf.isPortAvailable(port)) { port++; }
+								//								props.setProperty("port", ""+port);
+								conf = new RserverConf("localhost", port, RS_LOGIN, RS_DYN_PWD, null); //props);
+							} else {
+								// *NUX: Just fit/target the MASTER instance. 
+								conf = RSessionWrapper.MASTER_SESSION.RserveConf;
+							}
 
 							// Then, spawn a new computing instance.
-							if (isWindows /*|| RSessionWrapper.R_SESSIONS_REG.size() == 0*/) {
+							if (isWindows) {
+								// Win: Figure out a new MASTER instance every time.
 								this.session = Rsession.newInstanceTry(logStream, conf);
 							} else {
-								this.session = Rsession.newLocalInstance(logStream, null);
+								// *NUX: Just spawn a new connection on MASTER instance.
+								// Need to target the same port, in case another Rserve (not started by this 
+								// MZmine instance) is running. 
+								// We need to keep constantly a hand on what is spawned by the app. to remain 
+								// able to shutdown everything related to it and it only when exiting (gracefully or not).
+								//**this.session = Rsession.newLocalInstance(logStream, null);
+								this.session = Rsession.newRemoteInstance(logStream, conf);
 							}
 							if (this.session == null)
 								throw new IllegalArgumentException(globalFailureMsg);
@@ -231,9 +271,10 @@ public class RSessionWrapper {
 					} else {
 
 						// Keep an opened instance and store the related PID.
-						this.rServePid = session.connection.eval("Sys.getpid()").asInteger();
-						this.rEngine = session.connection;
-						LOG.log(logLvl, "Rserve: started instance with pid '" + this.rServePid + "'.");
+						this.rServePid = this.session.connection.eval("Sys.getpid()").asInteger();
+						this.rEngine = this.session.connection;
+						LOG.log(logLvl, "Rserve: started instance (pid: '" + 
+								this.rServePid + "' | port: '" + this.session.RserveConf.port + "').");
 
 						// Quick test
 						LOG.log(logLvl, ((RConnection) this.rEngine).eval("R.version.string").asString());		
@@ -244,7 +285,7 @@ public class RSessionWrapper {
 		catch (Throwable t) {
 			//t.printStackTrace();
 			throw new RSessionWrapperException(
-					"This feature requires R but it couldn't be loaded: \n" + TextUtils.wrapText(t.getMessage(), 80));
+					/*"This feature requires R but it couldn't be loaded: \n" +*/ TextUtils.wrapText(t.getMessage(), 80));
 		}
 	}
 
@@ -487,7 +528,8 @@ public class RSessionWrapper {
 			try {
 
 				LOG.log(logLvl, "Rserve: try terminate " + ((this.rServePid == -1) ? "pending" : "") + " session" + 
-						((this.rServePid == -1) ? "..." : " with pid '" + this.rServePid + "'..."));
+						((this.rServePid == -1) ? "..." : " (pid: '" 
+								+ this.rServePid + "' | port: '" + this.session.RserveConf.port + "')..."));
 
 				// Avoid 'Rsession' to 'printStackTrace' while catching 'SocketException'
 				// (since we are about to brute force kill the Rserve instance, such that
@@ -500,7 +542,8 @@ public class RSessionWrapper {
 				RSessionWrapper.unMuteStdOutErr();
 
 				LOG.log(logLvl, "Rserve: terminated " + ((this.rServePid == -1) ? "pending" : "") + " session" + 
-						((this.rServePid == -1) ? "." : " with pid '" + this.rServePid + "'."));
+						((this.rServePid == -1) ? "..." : " (pid: '" 
+								+ this.rServePid + "' | port: '" + this.session.RserveConf.port + "')..."));
 
 				// Release session (prevents from calling close again on a closed instance).
 				this.session = null;
@@ -634,22 +677,21 @@ public class RSessionWrapper {
 		return (this.session != null && !this.userCanceled);
 	}
 
-	
+
 	public static void CleanAll() {
+
 		// Cleanup Rserve instances.
-		if (RUtilities.isWindows()) {	// Should die with the app. anyway.
-			for (int i=0; i < RSessionWrapper.R_SESSIONS_REG.size(); ++i) {
-				try {
-					if (RSessionWrapper.R_SESSIONS_REG.get(i) != null)
-						RSessionWrapper.R_SESSIONS_REG.get(i).close(true);
-				} catch (RSessionWrapperException e) {
-					// Silent.
+		for (int i=RSessionWrapper.R_SESSIONS_REG.size()-1; i >= 0; --i) {
+			try {
+				if (RSessionWrapper.R_SESSIONS_REG.get(i) != null) {
+					LOG.info("CleanAll / instance: " + RSessionWrapper.R_SESSIONS_REG.get(i).getPID());
+					RSessionWrapper.R_SESSIONS_REG.get(i).close(true);
 				}
+			} catch (RSessionWrapperException e) {
+				// Silent.
 			}
-		} else {
-			if (RSessionWrapper.MASTER_SESSION != null)
-				RSessionWrapper.MASTER_SESSION.end();
 		}
+
 	}
-	
+
 }

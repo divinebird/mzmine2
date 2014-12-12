@@ -21,7 +21,7 @@
  * pre-existing code or project. Syngenta does not assert ownership or copyright any over pre-existing work.
  */
 
-package net.sf.mzmine.util;
+package net.sf.mzmine.util.R;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,8 +40,8 @@ import org.rosuda.JRI.Rengine;
  * Utilities for interfacing with R.
  * Kept JRI for nostalgia reasons...
  * 
- * @author $Author$
- * @version $Revision$
+ * @author $Author: golgauth $
+ * @version $Revision: 3539 $
  */
 public class RUtilities {
 

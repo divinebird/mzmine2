@@ -54,9 +54,6 @@ import net.sf.mzmine.parameters.impl.SimpleParameterSet;
 import net.sf.mzmine.util.ExceptionUtils;
 import net.sf.mzmine.util.ExitCode;
 import net.sf.mzmine.util.TextUtils;
-import net.sf.mzmine.util.R.RSessionWrapper;
-import net.sf.mzmine.util.R.RSessionWrapperException;
-import net.sf.mzmine.util.R.RUtilities;
 
 /**
  * This class is the main window of application

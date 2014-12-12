@@ -236,10 +236,14 @@ public class RserverConf {
         return true;
     }
 
+    // GLG TODO: Better not use this. See comment bellow.
     public static RserverConf newLocalInstance(Properties p) {
         RserverConf server = null;
         if (System.getProperty("os.name").contains("Win") || !Rsession.UNIX_OPTIMIZE) {
-            while (!isPortAvailable(RserverPort)) {
+        	//RserverPort = RserverDefaultPort;
+            // GLG TODO: use ArrayList<Integer>() to reuse freed ports (Rsession.end())
+        	//			Otherwise, we'll run out of possible port number in case of intensive use !!!
+        	while (!isPortAvailable(RserverPort)) {
                 RserverPort++;
                 //System.out.println("RserverPort++ = " + RserverPort);
             }
@@ -250,7 +254,7 @@ public class RserverConf {
         }
         return server;
     }
-
+    
     public boolean isLocal() {
         return host == null || host.equals(DEFAULT_RSERVE_HOST) || host.equals("127.0.0.1");
     }

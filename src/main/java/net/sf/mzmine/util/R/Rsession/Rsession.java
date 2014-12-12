@@ -522,7 +522,9 @@ public class Rsession implements Logger {
 
             status = STATUS_CONNECTING;
 
-            RserveConf = RserverConf.newLocalInstance(RserveConf.properties);
+            // GLG HACK: Why not allowing a local instance to behave like a remote one?
+            // (choosing port, ...)
+            //*****RserveConf = RserverConf.newLocalInstance(RserveConf.properties);
             println("Trying to spawn " + RserveConf.toString(), Level.INFO);
 
             localRserve = new Rdaemon(RserveConf, this);

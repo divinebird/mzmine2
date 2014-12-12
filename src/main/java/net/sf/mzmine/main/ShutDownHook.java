@@ -50,7 +50,9 @@ class ShutDownHook extends Thread {
 		}
 
 		// Cleanup Rserve stuffs.
+		synchronized (RSessionWrapper.R_SESSION_SEMAPHORE) {
 		RSessionWrapper.CleanAll();
+		}
 
 	}
 }
