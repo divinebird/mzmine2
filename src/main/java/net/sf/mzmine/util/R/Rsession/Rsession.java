@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import org.rosuda.REngine.Rserve.RFileInputStream;
 import org.rosuda.REngine.Rserve.RFileOutputStream;
 import org.rosuda.REngine.Rserve.RserveException;
 
+import net.sf.mzmine.util.R.RUtilities;
 import net.sf.mzmine.util.R.Rsession.Logger;
 import net.sf.mzmine.util.R.Rsession.Logger.Level;
 
@@ -56,12 +58,18 @@ public class Rsession implements Logger {
     static String separator = ",";
     public final static int MinRserveVersion = 103;
     Rdaemon localRserve;
-    public RserverConf RserveConf;
+    public RserverConf rServeConf;
     public final static String STATUS_NOT_SET = "Unknown status", STATUS_READY = "Ready", STATUS_ERROR = "Error", STATUS_ENDED = "End", STATUS_NOT_CONNECTED = "Not connected", STATUS_CONNECTING = "Connecting...";
     public String status = STATUS_NOT_SET;
     // <editor-fold defaultstate="collapsed" desc="Add/remove interfaces">
     List<Logger> loggers;
     public boolean debug;
+    
+    
+    // GLG HACK:
+    public static final Object R_SESSION_SEMAPHORE = new Object();
+    public static ArrayList<Integer> PORTS_REG = new ArrayList<Integer>();
+    
 
     void cleanupListeners() {
         if (loggers != null) {
@@ -422,7 +430,7 @@ public class Rsession implements Logger {
      */
     public Rsession(final Logger console, RserverConf serverconf, boolean tryLocalRServe) {
         this.console = console;
-        RserveConf = serverconf;
+        rServeConf = serverconf;
         this.tryLocalRServe = tryLocalRServe;
 
         loggers = new LinkedList<Logger>();
@@ -472,10 +480,10 @@ public class Rsession implements Logger {
     }
 
     void startup() {
-        if (RserveConf == null) {
+        if (rServeConf == null) {
             if (tryLocalRServe) {
-                RserveConf = RserverConf.newLocalInstance(null);
-                println("No Rserve conf given. Trying to use " + RserveConf.toString(), Level.WARNING);
+                rServeConf = RserverConf.newLocalInstance(null);
+                println("No Rserve conf given. Trying to use " + rServeConf.toString(), Level.WARNING);
                 begin(true);
             } else {
                 println("No Rserve conf given. Failed to start session.", Level.ERROR);
@@ -494,6 +502,14 @@ public class Rsession implements Logger {
     }
 
     void begin(boolean tryLocal) {
+    	
+    	// GLG HACK:
+    	synchronized (Rsession.R_SESSION_SEMAPHORE) {
+    		if (!Rsession.PORTS_REG.contains(Integer.valueOf(rServeConf.port)))
+    			PORTS_REG.add(Integer.valueOf(rServeConf.port));
+    	}
+    	
+    	
         status = STATUS_NOT_CONNECTED;
 
         /*if (RserveConf == null) {
@@ -502,16 +518,16 @@ public class Rsession implements Logger {
          }*/
         status = STATUS_CONNECTING;
 
-        connection = RserveConf.connect();
+        connection = rServeConf.connect();
         connected = (connection != null);
 
         if (!connected) {
             status = STATUS_ERROR;
-            String message = "Rserve " + RserveConf + " is not accessible.";
+            String message = "Rserve " + rServeConf + " is not accessible.";
             println(message, Level.ERROR);
         } else if (connection.getServerVersion() < MinRserveVersion) {
             status = STATUS_ERROR;
-            String message = "Rserve " + RserveConf + " version is too old.";
+            String message = "Rserve " + rServeConf + " version is too old.";
             println(message, Level.ERROR);
         } else {
             status = STATUS_READY;
@@ -523,14 +539,23 @@ public class Rsession implements Logger {
             status = STATUS_CONNECTING;
 
             // GLG HACK: Why not allowing a local instance to behave like a remote one?
-            // (choosing port, ...)
+            // (using port, login and password ...)
             //*****RserveConf = RserverConf.newLocalInstance(RserveConf.properties);
-            println("Trying to spawn " + RserveConf.toString(), Level.INFO);
+            int port_tmp = rServeConf.port;
+            int port = (rServeConf.port > 0 && RserverConf.isPortAvailable(rServeConf.port)) ? rServeConf.port : RserverConf.getNewAvailablePort();
+//            // Allow to get a new port only if it was unspecified in the first place.
+//            int port = (rServeConf.port != -1) ? rServeConf.port : RserverConf.getNewAvailablePort();
+            if (port_tmp != port) {
+            	println("WARNING: Changed the original requested port from " + port_tmp + " to " + port + "!", Level.WARNING);
+            }
+        	rServeConf = new RserverConf(RserverConf.DEFAULT_RSERVE_HOST, port, rServeConf.login, rServeConf.password, null);
+        	
+            println("Trying to spawn " + rServeConf.toString(), Level.INFO);
 
-            localRserve = new Rdaemon(RserveConf, this);
+            localRserve = new Rdaemon(rServeConf, this);
             String http_proxy = null;
-            if (RserveConf != null && RserveConf.properties != null && RserveConf.properties.containsKey("http_proxy")) {
-                http_proxy = RserveConf.properties.getProperty("http_proxy");
+            if (rServeConf != null && rServeConf.properties != null && rServeConf.properties.containsKey("http_proxy")) {
+                http_proxy = rServeConf.properties.getProperty("http_proxy");
             }
             localRserve.start(http_proxy);
 
@@ -540,7 +565,7 @@ public class Rsession implements Logger {
                 ie.printStackTrace();
             }
 
-            connection = RserveConf.connect();
+            connection = rServeConf.connect();
             connected = (connection != null);
 
             if (!connected) {//failed !
@@ -565,7 +590,7 @@ public class Rsession implements Logger {
      * correctly (depending on execution platform) shutdown Rsession.
      */
     public void end() {
-        if (connection == null) {
+       if (connection == null) {
             log("Void session terminated.", Level.INFO);
             cleanupListeners();
             return;
@@ -583,6 +608,13 @@ public class Rsession implements Logger {
 
         connection = null;
         cleanupListeners();
+        
+    	// GLG HACK:
+    	synchronized (Rsession.R_SESSION_SEMAPHORE) {
+    		if (Rsession.PORTS_REG.contains(Integer.valueOf(rServeConf.port)))
+    			PORTS_REG.remove(Integer.valueOf(rServeConf.port));
+    	}
+
     }
     public static final boolean UNIX_OPTIMIZE = true;
     String lastmessage = "";

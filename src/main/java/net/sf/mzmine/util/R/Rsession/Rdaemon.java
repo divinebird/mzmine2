@@ -255,7 +255,16 @@ public class Rdaemon {
         
         StringBuffer RserveArgs = new StringBuffer("--no-save --slave ");
         
-        if (!System.getProperty("os.name").contains("Win"))
+        if (System.getProperty("os.name").contains("Win")) {
+        	//RserveArgs.append(" --RS-pidfile \"" + System.getProperty("user.dir").replaceAll("\\\\", "/") + "/rs_pid_" + conf.port + ".txt\"");
+//        	String cmd = "set s_file=;" +
+//        			"for %f in (\"%cd%/rs_pid_" + conf.port + ".txt\") do (set s_file=%~sf);" +
+//        			"set s_file=%s_file:\\=/%;" +
+//        			--RS-pidfile \"%s_file%\" --RS-port 6311')\" --no-save --slave";
+             
+        	RserveArgs.append(" --RS-pidfile \"" + System.getenv("CD_SHORT_INV") + "/rs_pid_" + conf.port + ".txt\"");
+
+    	} else
         	RserveArgs.append(" --RS-pidfile \\'" + System.getProperty("user.dir") + "/rs_pid.txt\\'");
         
         if (conf.port > 0) {

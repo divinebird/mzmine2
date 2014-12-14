@@ -29,6 +29,13 @@ rem files (parsed raw data) will be placed. Default is %TEMP%, which
 rem represents the system temporary directory.
 set TMP_FILE_DIRECTORY=%TEMP%
 
+rem DOS short name for current directory, forward slashed.
+set CD_SHORT_INV=
+for %%f in ("%cd%") do (set CD_SHORT_INV=%%~sf)
+set CD_SHORT_INV=%CD_SHORT_INV:\=/%
+rem set CD_SHORT_INV
+
+
 rem Set R environment variables.
 set R_HOME=C:\Program Files\R\R-3.1.1
 set R_SHARE_DIR=%R_HOME%\share
@@ -57,6 +64,24 @@ rem Show java version, in case a problem occurs
 
 rem This command starts the Java Virtual Machine
 %JAVA_COMMAND% %JAVA_PARAMETERS% -classpath %CLASS_PATH% %MAIN_CLASS% %*
+
+
+rem Kill/cleanup remaining Rserve instances
+setlocal disableDelayedExpansion
+:: Load the file path "array"
+for /f "tokens=1* delims=:" %%A in ('dir /b *.txt^|findstr /n "^"') do (
+  set "file.%%A=%%B"
+  set "file.count=%%A"
+)
+:: Access the values
+setlocal enableDelayedExpansion
+for /l %%N in (1 1 %file.count%) do (
+  echo !file.%%N!
+  set /P pid=<!file.%%N!
+  echo !pid!
+  del !file.%%N!
+  taskkill /PID !pid! /F
+)
 
 rem If there was an error, give the user chance to see it
 IF ERRORLEVEL 1 pause 

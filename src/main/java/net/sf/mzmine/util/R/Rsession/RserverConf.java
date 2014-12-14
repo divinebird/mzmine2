@@ -4,12 +4,13 @@ import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.util.Properties;
+
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 public class RserverConf {
 
-    public static String DEFAULT_RSERVE_HOST = "localhost";
+    public static final String DEFAULT_RSERVE_HOST = "localhost";
     RConnection connection;
     public String host;
     public int port;
@@ -27,7 +28,8 @@ public class RserverConf {
         properties = props;
     }
     public static long CONNECT_TIMEOUT = 1000;
-
+    
+    
     public abstract class TimeOut {
 
         /**
@@ -237,6 +239,7 @@ public class RserverConf {
     }
 
     // GLG TODO: Better not use this. See comment bellow.
+    // The point being getting a new port (Win), see new function below.
     public static RserverConf newLocalInstance(Properties p) {
         RserverConf server = null;
         if (System.getProperty("os.name").contains("Win") || !Rsession.UNIX_OPTIMIZE) {
@@ -253,6 +256,18 @@ public class RserverConf {
             server = new RserverConf(null, -1, null, null, p);
         }
         return server;
+    }
+    // Taking advantage, by the way, to restart the search from beginning.
+    // (allows the reuse of freed ports, eventually).
+    public static int getNewAvailablePort() {
+    	synchronized (Rsession.R_SESSION_SEMAPHORE) {
+	    	int port = RserverConf.RserverDefaultPort;
+			while (Rsession.PORTS_REG.contains(Integer.valueOf(port)) ||
+					!RserverConf.isPortAvailable(port)) { port++; }
+			if (!Rsession.PORTS_REG.contains(Integer.valueOf(port)))
+					Rsession.PORTS_REG.add(Integer.valueOf(port));
+			return port;
+    	}
     }
     
     public boolean isLocal() {

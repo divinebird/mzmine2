@@ -126,6 +126,7 @@ public class RSessionWrapper {
 
 	private Rsession session;
 	private int rServePid = -1;
+	//private final int rServePort;
 
 	private boolean userCanceled = false;
 
@@ -160,6 +161,7 @@ public class RSessionWrapper {
 					boolean isWindows = RUtilities.isWindows();
 					if (R_HOME == null) { R_HOME = System.getenv(R_HOME_KEY); }
 
+					Object rSemaphore = (isWindows) ? RSessionWrapper.R_SESSION_SEMAPHORE : this.R_DUMMY_SEMAPHORE;
 					try {
 
 						// If retrieving 'R_HOME' from environment failed, try to find out automatically.
@@ -194,9 +196,7 @@ public class RSessionWrapper {
 								// (in case other Rserve, not spawned by MZmine, are running already).
 								// Note: this also fixes potential issues when running several instances of MZmine
 								// 			concurrently.
-								int port = RserverConf.RserverDefaultPort;
-								while (!RserverConf.isPortAvailable(port)) { port++; }
-								//								props.setProperty("port", ""+port);
+								int port = RserverConf.getNewAvailablePort();
 								RserverConf conf = new RserverConf("localhost", port, RS_LOGIN, RS_DYN_PWD, null); //props);
 								RSessionWrapper.MASTER_PORT = port;
 								RSessionWrapper.MASTER_SESSION = Rsession.newInstanceTry(logStream, conf);
@@ -216,25 +216,23 @@ public class RSessionWrapper {
 						// before trying to get another one).					
 						// Win: Synch with any previous session, if applicable. 
 						// *NUX: Synch with nothing that matters.
-						Object rSemaphore = (isWindows) ? RSessionWrapper.R_SESSION_SEMAPHORE : this.R_DUMMY_SEMAPHORE;
 						synchronized (rSemaphore) { //RUtilities.R_SEMAPHORE) {
 
 							RserverConf conf;
 							if (isWindows) {
 								//**conf = null; 
 								// Win: Need to get a new port every time.
-								int port = RserverConf.RserverDefaultPort;
-								while (!RserverConf.isPortAvailable(port)) { port++; }
-								//								props.setProperty("port", ""+port);
+								int port = RserverConf.getNewAvailablePort();
 								conf = new RserverConf("localhost", port, RS_LOGIN, RS_DYN_PWD, null); //props);
+								//conf = null;
 							} else {
 								// *NUX: Just fit/target the MASTER instance. 
-								conf = RSessionWrapper.MASTER_SESSION.RserveConf;
+								conf = RSessionWrapper.MASTER_SESSION.rServeConf;
 							}
 
 							// Then, spawn a new computing instance.
 							if (isWindows) {
-								// Win: Figure out a new MASTER instance every time.
+								// Win: Figure out a new standalone instance every time.
 								this.session = Rsession.newInstanceTry(logStream, conf);
 							} else {
 								// *NUX: Just spawn a new connection on MASTER instance.
@@ -253,29 +251,56 @@ public class RSessionWrapper {
 						}
 
 					} catch (IllegalArgumentException e) {
+						e.printStackTrace();
 						// Redirect undeclared exceptions thrown by "Rsession" library to regular one.
 						//**throw new RSessionWrapperException(e.getMessage());
 						throw new RSessionWrapperException(globalFailureMsg);
 					}
 
-					// As "Rsession.newInstanceTry()" runs an Rdaemon Thread. It is scheduled already,
-					// meaning the session will be opened even for "WAITING" tasks, in any case, and even
-					// if it's been meanwhile canceled.
-					// Consequently, we need to kill it after the instance has been created, since trying to abort
-					// the instance (close the session) before it exists would result in no termination at all.
-					if (this.session != null && this.userCanceled) {
-						this.close(true);
-						return;
-					} else {
+//					// As "Rsession.newInstanceTry()" runs an Rdaemon Thread. It is scheduled already,
+//					// meaning the session will be opened even for "WAITING" tasks, in any case, and even
+//					// if it's been meanwhile canceled.
+//					// Consequently, we need to kill it after the instance has been created, since trying to abort
+//					// the instance (close the session) before it exists would result in no termination at all.
+//					if (this.session != null && this.userCanceled) {
+//						//*****synchronized (rSemaphore) { //RUtilities.R_SEMAPHORE) {
+//							this.close(true);
+//						//*****}
+//						return;
+//					} else {
+//
+//						// Keep an opened instance and store the related PID.
+//						this.rServePid = this.session.connection.eval("Sys.getpid()").asInteger();
+//						this.rEngine = this.session.connection;
+//						LOG.log(logLvl, "Rserve: started instance (pid: '" + 
+//								this.rServePid + "' | port: '" + this.session.rServeConf.port + "').");
+//
+//						// Quick test
+//						LOG.log(logLvl, ((RConnection) this.rEngine).eval("R.version.string").asString());		
+//					}
+					
+//					// As "Rsession.newInstanceTry()" runs an Rdaemon Thread. It is scheduled already,
+//					// meaning the session will be opened even for "WAITING" tasks, in any case, and even
+//					// if it's been meanwhile canceled.
+//					// Consequently, we need to kill it after the instance has been created, since trying to abort
+//					// the instance (close the session) before it exists would result in no termination at all.
+					if (this.session != null) {
+						
+						if (this.session.connection != null) {
+							// Keep an opened instance and store the related PID.
+							this.rServePid = this.session.connection.eval("Sys.getpid()").asInteger();
+							this.rEngine = this.session.connection;
+							LOG.log(logLvl, "Rserve: started instance (pid: '" + 
+									this.rServePid + "' | port: '" + this.session.rServeConf.port + "').");
 
-						// Keep an opened instance and store the related PID.
-						this.rServePid = this.session.connection.eval("Sys.getpid()").asInteger();
-						this.rEngine = this.session.connection;
-						LOG.log(logLvl, "Rserve: started instance (pid: '" + 
-								this.rServePid + "' | port: '" + this.session.RserveConf.port + "').");
-
-						// Quick test
-						LOG.log(logLvl, ((RConnection) this.rEngine).eval("R.version.string").asString());		
+							// Quick test
+							LOG.log(logLvl, ((RConnection) this.rEngine).eval("R.version.string").asString());		
+						}						
+						if (this.userCanceled) {
+							this.close(true);
+							return;
+						}
+						
 					}
 				}
 			}
@@ -525,26 +550,31 @@ public class RSessionWrapper {
 
 			try {
 
-				LOG.log(logLvl, "Rserve: try terminate " + ((this.rServePid == -1) ? "pending" : "") + " session" + 
-						((this.rServePid == -1) ? "..." : " (pid: '" 
-								+ this.rServePid + "' | port: '" + this.session.RserveConf.port + "')..."));
-
-				// Avoid 'Rsession' to 'printStackTrace' while catching 'SocketException'
-				// (since we are about to brute force kill the Rserve instance, such that
-				// the session won't end properly).
-				RSessionWrapper.muteStdOutErr();
-				{
-					RSessionWrapper.killRserveInstance(this);			
-					this.session.end();
-				}
-				RSessionWrapper.unMuteStdOutErr();
-
-				LOG.log(logLvl, "Rserve: terminated " + ((this.rServePid == -1) ? "pending" : "") + " session" + 
-						((this.rServePid == -1) ? "..." : " (pid: '" 
-								+ this.rServePid + "' | port: '" + this.session.RserveConf.port + "')..."));
-
-				// Release session (prevents from calling close again on a closed instance).
-				this.session = null;
+//				// Win: Session closure synchronized to handle reuse of ports properly. 
+//				Object rSemaphore = (RUtilities.isWindows()) ? RSessionWrapper.R_SESSION_SEMAPHORE : this.R_DUMMY_SEMAPHORE;
+//				synchronized (rSemaphore) {
+						
+					LOG.log(logLvl, "Rserve: try terminate " + ((this.rServePid == -1) ? "pending" : "") + " session" + 
+							((this.rServePid == -1) ? "..." : " (pid: '" 
+									+ this.rServePid + "' | port: '" + this.session.rServeConf.port + "')..."));
+	
+					// Avoid 'Rsession' to 'printStackTrace' while catching 'SocketException'
+					// (since we are about to brute force kill the Rserve instance, such that
+					// the session won't end properly).
+					RSessionWrapper.muteStdOutErr();
+					{
+						RSessionWrapper.killRserveInstance(this);			
+						this.session.end();
+					}
+					RSessionWrapper.unMuteStdOutErr();
+	
+					LOG.log(logLvl, "Rserve: terminated " + ((this.rServePid == -1) ? "pending" : "") + " session" + 
+							((this.rServePid == -1) ? "..." : " (pid: '" 
+									+ this.rServePid + "' | port: '" + this.session.rServeConf.port + "')..."));
+	
+					// Release session (prevents from calling close again on a closed instance).
+					this.session = null;
+//				}
 
 			} catch (Throwable t) {
 				// Adapt/refactor message accordingly to the way the termination was provoked:
