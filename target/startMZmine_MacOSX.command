@@ -12,9 +12,15 @@ echo "Found $TOTAL_MEMORY MB memory"
 HEAP_SIZE=`expr $TOTAL_MEMORY / 2`
 echo Java heap size set to $HEAP_SIZE MB
 
+# Store this MZmine instance, a UNID.
+export MZMINE_UNID="MZmine"$$
+
 # The TMP_FILE_DIRECTORY parameter defines the location where temporary 
 # files (parsed raw data) will be placed. Default is /tmp.
 TMP_FILE_DIRECTORY=/tmp
+# Make the working temp dir unique per MZmine instance.
+export TMP_FILE_DIRECTORY=$TMP_FILE_DIRECTORY/$MZMINE_UNID
+mkdir $TMP_FILE_DIRECTORY
 
 # Set R environment variables.
 export R_HOME=/Library/Frameworks/R.framework/Versions/Current/Resources/
@@ -40,7 +46,8 @@ echo "$JAVA_PARAMETERS" $MAIN_CLASS "$@" | xargs $JAVA_COMMAND
 
 
 # Cleaning Rserve instance if MZmine was killed ungracefully (ex. kill -9 ...)
-pidfile="$(pwd)/rs_pid.txt"
+#pidfile="$TMP_FILE_DIRECTORY/rs_pid.pid"
+pidfile=`ls -tr $TMP_FILE_DIRECTORY/rs_pid*.pid 2> /dev/null | tail -1 2> /dev/null`
 # File exists (Rserve was used during MZmine session)
 if [ -e "$pidfile" ]
 then
@@ -59,3 +66,5 @@ then
 		rm "$pidfile"
 	fi
 fi
+
+
