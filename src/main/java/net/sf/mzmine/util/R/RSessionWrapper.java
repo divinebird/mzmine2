@@ -74,6 +74,7 @@ public class RSessionWrapper {
 	// Enhanced remote security stuffs.
 	private static final String RS_LOGIN = "MZmineUser";
 	private static final String RS_DYN_PWD = String.valueOf(java.util.UUID.randomUUID());
+	private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
 
 	public enum RengineType {
 
@@ -199,7 +200,7 @@ public class RSessionWrapper {
 								int port = RserverConf.getNewAvailablePort();
 								RserverConf conf = new RserverConf("localhost", port, RS_LOGIN, RS_DYN_PWD, null); //props);
 								RSessionWrapper.MASTER_PORT = port;
-								RSessionWrapper.MASTER_SESSION = Rsession.newInstanceTry(logStream, conf);
+								RSessionWrapper.MASTER_SESSION = Rsession.newInstanceTry(logStream, conf, TMP_DIR);
 								int masterPID = RSessionWrapper.MASTER_SESSION.connection.eval("Sys.getpid()").asInteger();
 
 								LOG.log(logLvl, ">> MASTER Rserve instance created (pid: '" + 
@@ -233,7 +234,7 @@ public class RSessionWrapper {
 							// Then, spawn a new computing instance.
 							if (isWindows) {
 								// Win: Figure out a new standalone instance every time.
-								this.session = Rsession.newInstanceTry(logStream, conf);
+								this.session = Rsession.newInstanceTry(logStream, conf, TMP_DIR);
 							} else {
 								// *NUX: Just spawn a new connection on MASTER instance.
 								// Need to target the same port, in case another Rserve (not started by this 
@@ -241,7 +242,7 @@ public class RSessionWrapper {
 								// We need to keep constantly a hand on what is spawned by the app. to remain 
 								// able to shutdown everything related to it and it only when exiting (gracefully or not).
 								//**this.session = Rsession.newLocalInstance(logStream, null);
-								this.session = Rsession.newRemoteInstance(logStream, conf);
+								this.session = Rsession.newRemoteInstance(logStream, conf, TMP_DIR);
 							}
 							if (this.session == null)
 								throw new IllegalArgumentException(globalFailureMsg);

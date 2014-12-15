@@ -67,6 +67,7 @@ public class Rsession implements Logger {
     
     
     // GLG HACK:
+    private static String tmpDir = null;
     public static final Object R_SESSION_SEMAPHORE = new Object();
     public static ArrayList<Integer> PORTS_REG = new ArrayList<Integer>();
     
@@ -355,8 +356,8 @@ public class Rsession implements Logger {
      * @param localRProperties properties to pass to R (eg http_proxy or R
      * libpath)
      */
-    public static Rsession newLocalInstance(final Logger console, Properties localRProperties) {
-        return new Rsession(console, RserverConf.newLocalInstance(localRProperties), false);
+    public static Rsession newLocalInstance(final Logger console, Properties localRProperties, String tmpDirectory) {
+        return new Rsession(console, RserverConf.newLocalInstance(localRProperties), false, tmpDirectory);
     }
 
     /**
@@ -367,8 +368,8 @@ public class Rsession implements Logger {
      * port, login, password, properties to pass to R (eg http_proxy or R
      * libpath)
      */
-    public static Rsession newRemoteInstance(final Logger console, RserverConf serverconf) {
-        return new Rsession(console, serverconf, false);
+    public static Rsession newRemoteInstance(final Logger console, RserverConf serverconf, String tmpDirectory) {
+        return new Rsession(console, serverconf, false, tmpDirectory);
     }
 
     /**
@@ -379,8 +380,8 @@ public class Rsession implements Logger {
      * @param serverconf RserverConf server configuration object, giving IP,
      * port, login, password, properties to pass to R (eg http_proxy)
      */
-    public static Rsession newInstanceTry(final Logger console, RserverConf serverconf) {
-        return new Rsession(console, serverconf, true);
+    public static Rsession newInstanceTry(final Logger console, RserverConf serverconf, String tmpDirectory) {
+        return new Rsession(console, serverconf, true, tmpDirectory);
     }
 
     /**
@@ -390,8 +391,8 @@ public class Rsession implements Logger {
      * @param localRProperties properties to pass to R (eg http_proxy or R
      * libpath)
      */
-    public static Rsession newLocalInstance(PrintStream pconsole, Properties localRProperties) {
-        return new Rsession(pconsole, RserverConf.newLocalInstance(localRProperties), false);
+    public static Rsession newLocalInstance(PrintStream pconsole, Properties localRProperties, String tmpDirectory) {
+        return new Rsession(pconsole, RserverConf.newLocalInstance(localRProperties), false, tmpDirectory);
     }
 
     /**
@@ -402,8 +403,8 @@ public class Rsession implements Logger {
      * port, login, password, properties to pass to R (eg http_proxy or R
      * libpath)
      */
-    public static Rsession newRemoteInstance(PrintStream pconsole, RserverConf serverconf) {
-        return new Rsession(pconsole, serverconf, false);
+    public static Rsession newRemoteInstance(PrintStream pconsole, RserverConf serverconf, String tmpDirectory) {
+        return new Rsession(pconsole, serverconf, false, tmpDirectory);
     }
 
     /**
@@ -414,8 +415,8 @@ public class Rsession implements Logger {
      * @param serverconf RserverConf server configuration object, giving IP,
      * port, login, password, properties to pass to R (eg http_proxy)
      */
-    public static Rsession newInstanceTry(PrintStream pconsole, RserverConf serverconf) {
-        return new Rsession(pconsole, serverconf, true);
+    public static Rsession newInstanceTry(PrintStream pconsole, RserverConf serverconf, String tmpDirectory) {
+        return new Rsession(pconsole, serverconf, true, tmpDirectory);
     }
 
     /**
@@ -428,7 +429,10 @@ public class Rsession implements Logger {
      * @param tryLocalRServe local spawned Rsession if given remote one failed
      * to initialized
      */
-    public Rsession(final Logger console, RserverConf serverconf, boolean tryLocalRServe) {
+    public Rsession(final Logger console, RserverConf serverconf, boolean tryLocalRServe, String tmpDirectory) {
+    	
+    	tmpDir = tmpDirectory;
+    	
         this.console = console;
         rServeConf = serverconf;
         this.tryLocalRServe = tryLocalRServe;
@@ -442,7 +446,7 @@ public class Rsession implements Logger {
     /**
      * create rsession using System as a logger
      */
-    public Rsession(final PrintStream p, RserverConf serverconf, boolean tryLocalRServe) {
+    public Rsession(final PrintStream p, RserverConf serverconf, boolean tryLocalRServe, String tmpDirectory) {
         this(new Logger() {
 
             public void println(String string, Level level) {
@@ -457,13 +461,13 @@ public class Rsession implements Logger {
             public void close() {
                 p.close();
             }
-        }, serverconf, tryLocalRServe);
+        }, serverconf, tryLocalRServe, tmpDirectory);
     }
 
     /**
      * create rsession using System as a logger
      */
-    public Rsession(RserverConf serverconf, boolean tryLocalRServe) {
+    public Rsession(RserverConf serverconf, boolean tryLocalRServe, String tmpDirectory) {
         this(new Logger() {
 
             public void println(String string, Level level) {
@@ -476,7 +480,7 @@ public class Rsession implements Logger {
 
             public void close() {
             }
-        }, serverconf, tryLocalRServe);
+        }, serverconf, tryLocalRServe, tmpDirectory);
     }
 
     void startup() {
@@ -557,7 +561,7 @@ public class Rsession implements Logger {
             if (rServeConf != null && rServeConf.properties != null && rServeConf.properties.containsKey("http_proxy")) {
                 http_proxy = rServeConf.properties.getProperty("http_proxy");
             }
-            localRserve.start(http_proxy);
+            localRserve.start(http_proxy, tmpDir);
 
             try {
                 Thread.sleep(1000);
@@ -2351,9 +2355,9 @@ public class Rsession implements Logger {
 
         if (args[0].startsWith(RserverConf.RURL_START)) {
             i++;
-            R = Rsession.newInstanceTry(l, RserverConf.parse(args[0]));
+            R = Rsession.newInstanceTry(l, RserverConf.parse(args[0]), null);
         } else {
-            R = Rsession.newInstanceTry(l, null);
+            R = Rsession.newInstanceTry(l, null, null);
         }
 
         //RObjectsPanel  o = new RObjectsPanel(R);

@@ -1,20 +1,31 @@
 @echo off
 
-rem Obtain the physical memory size
-for /f "skip=1" %%p in ('wmic os get totalvisiblememorysize') do if not defined TOTAL_MEMORY set TOTAL_MEMORY=%%p 
+rem This is necessary to access the TOTAL_MEMORY and ADDRESS_WIDTH variables inside the IF block
+setlocal enabledelayedexpansion
 
-rem The HEAP_SIZE variable defines the Java heap size in MB. 
+rem Obtain the physical memory size and check if we are running on a 32-bit system.
+if exist C:\Windows\System32\wbem\wmic.exe (
+  echo Checking physical memory size...
+  rem Get physical memory size from OS
+  for /f "skip=1" %%p in ('C:\Windows\System32\wbem\wmic.exe os get totalvisiblememorysize') do if not defined TOTAL_MEMORY set /a TOTAL_MEMORY=%%p / 1024
+  for /f "skip=1" %%x in ('C:\Windows\System32\wbem\wmic.exe cpu get addresswidth') do if not defined ADDRESS_WIDTH set ADDRESS_WIDTH=%%x
+  echo Found !TOTAL_MEMORY! MB memory, !ADDRESS_WIDTH!-bit system
+) else (
+  echo Skipping memory size check, because wmic.exe could not be found
+  set ADDRESS_WIDTH=32
+)
+
+rem The HEAP_SIZE variable defines the Java heap size in MB.
 rem That is the total amount of memory available to MZmine 2.
-rem By default we set this to the half of the physical memory 
-rem size, but feel free to adjust according to your needs. 
-set /a HEAP_SIZE=%TOTAL_MEMORY% / 1024 / 2
-
-rem Check if we are running on a 32-bit system. 
-rem If yes, force the heap size to 1024 MB.
-for /f "skip=1" %%x in ('wmic cpu get addresswidth') do if not defined ADDRESS_WIDTH set ADDRESS_WIDTH=%%x
+rem By default we set this to 1024 MB on 32-bit systems, or 
+rem half of the physical memory on 64-bit systems.
+rem Feel free to adjust the HEAP_SIZE according to your needs.
 if %ADDRESS_WIDTH%==32 (
   set HEAP_SIZE=1024
-) 
+) else (
+  set /a HEAP_SIZE=%TOTAL_MEMORY% / 2
+)
+echo Java heap size set to %HEAP_SIZE% MB
 
 rem The TMP_FILE_DIRECTORY parameter defines the location where temporary 
 rem files (parsed raw data) will be placed. Default is %TEMP%, which 
@@ -40,15 +51,11 @@ rem path to the java command of that JVM
 set JAVA_COMMAND=java
 
 rem It is not necessary to modify the following section
-set JAVA_PARAMETERS=-XX:+UseParallelGC -Djava.io.tmpdir=%TMP_FILE_DIRECTORY% -Xms%HEAP_SIZE%m -Xmx%HEAP_SIZE%m -Djava.library.path="%JRI_LIB_PATH%"
-set CLASS_PATH=lib\${project.artifactId}-${project.version}.jar
+set JAVA_PARAMETERS=-showversion -classpath lib\* -Djava.ext.dirs= -XX:+UseParallelGC -Djava.io.tmpdir=%TMP_FILE_DIRECTORY% -Xms%HEAP_SIZE%m -Xmx%HEAP_SIZE%m -Djava.library.path="%JRI_LIB_PATH%"
 set MAIN_CLASS=net.sf.mzmine.main.MZmineCore
 
-rem Show java version, in case a problem occurs
-%JAVA_COMMAND% -version
-
 rem This command starts the Java Virtual Machine
-%JAVA_COMMAND% %JAVA_PARAMETERS% -classpath %CLASS_PATH% %MAIN_CLASS% %*
+%JAVA_COMMAND% %JAVA_PARAMETERS% %MAIN_CLASS% %*
 
 rem If there was an error, give the user chance to see it
 IF ERRORLEVEL 1 pause

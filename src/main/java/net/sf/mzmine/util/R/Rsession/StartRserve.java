@@ -220,7 +220,7 @@ public class StartRserve {
     public static boolean launchRserve(String cmd) {
         StringBuffer RserveArgs = new StringBuffer("--no-save --slave ");      
         if (!System.getProperty("os.name").contains("Win"))
-        	RserveArgs.append(" --RS-pidfile \\'" + System.getProperty("user.dir") + "/rs_pid.txt\\'");
+        	RserveArgs.append(" --RS-pidfile \\'" /*+ System.getProperty("user.dir")*/ + "/tmp" + "/rs_pid.pid\\'");
         return launchRserve(cmd, /*null,*/ "--no-save --slave", RserveArgs.toString(), false);
     }
 

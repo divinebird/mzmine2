@@ -4,11 +4,23 @@
 # That is the total amount of memory available to MZmine 2.
 # By default we set this to the half of the physical memory 
 # size, but feel free to adjust according to your needs. 
-HEAP_SIZE=`free -m | awk '/Mem:/ {print int($2 / 2)}'`
+
+echo "Checking physical memory size..."
+TOTAL_MEMORY=`free -b | awk '/Mem:/ { print int($2 / 1024^2) }'`
+echo "Found $TOTAL_MEMORY MB memory"
+
+HEAP_SIZE=`expr $TOTAL_MEMORY / 2`
+echo Java heap size set to $HEAP_SIZE MB
+
+# Store this MZmine instance, a UNID.
+export MZMINE_UNID="MZMINE"$$
 
 # The TMP_FILE_DIRECTORY parameter defines the location where temporary 
 # files (parsed raw data) will be placed. Default is /tmp.
 TMP_FILE_DIRECTORY=/tmp
+# Make the working temp dir unique per MZmine instance.
+export TMP_FILE_DIRECTORY=$TMP_FILE_DIRECTORY/$MZMINE_UNID
+mkdir $TMP_FILE_DIRECTORY
 
 # Set R environment variables.
 #export R_HOME=/usr/lib64/R
@@ -34,23 +46,20 @@ unset R_HOME
 JAVA_COMMAND=java
 
 # It is not necessary to modify the following section
-JAVA_PARAMETERS="-XX:+UseParallelGC -Djava.io.tmpdir=$TMP_FILE_DIRECTORY -Xms${HEAP_SIZE}m -Xmx${HEAP_SIZE}m -Djava.library.path=${JRI_LIB_PATH}"
-CLASS_PATH=lib/MZmine-2.11-EEE.jar
+JAVA_PARAMETERS="-showversion -classpath lib/\* -Djava.ext.dirs= -XX:+UseParallelGC -Djava.io.tmpdir=$TMP_FILE_DIRECTORY -Xms${HEAP_SIZE}m -Xmx${HEAP_SIZE}m -Djava.library.path=${JRI_LIB_PATH}"
 MAIN_CLASS=net.sf.mzmine.main.MZmineCore
 
 # Make sure we are in the correct directory
 SCRIPTDIR=`dirname "$0"`
 cd "$SCRIPTDIR"
 
-# Show java version, in case a problem occurs
-echo "-version" | xargs $JAVA_COMMAND
-
 # This command starts the Java Virtual Machine
-echo "$JAVA_PARAMETERS" -classpath $CLASS_PATH $MAIN_CLASS "$@" | xargs $JAVA_COMMAND
+echo "$JAVA_PARAMETERS" $MAIN_CLASS "$@" | xargs $JAVA_COMMAND
 
 
 # Cleaning Rserve instance if MZmine was killed ungracefully (ex. kill -9 ...)
-pidfile="$(pwd)/rs_pid.txt"
+#pidfile="$TMP_FILE_DIRECTORY/rs_pid.pid"
+pidfile=`ls -tr $TMP_FILE_DIRECTORY/rs_pid*.pid 2> /dev/null | tail -1 2> /dev/null`
 # File exists (Rserve was used during MZmine session)
 if [ -e "$pidfile" ]
 then
