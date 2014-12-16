@@ -160,37 +160,38 @@ public class RSessionWrapper {
 				if (this.rEngine == null) {
 
 					boolean isWindows = RUtilities.isWindows();
-					if (R_HOME == null) { R_HOME = System.getenv(R_HOME_KEY); }
-
-					Object rSemaphore = (isWindows) ? RSessionWrapper.R_SESSION_SEMAPHORE : this.R_DUMMY_SEMAPHORE;
+					
 					try {
 
-						// If retrieving 'R_HOME' from environment failed, try to find out automatically.
-						// (Since 'Rsession.newInstanceTry()', checks the environment first).
-						// @See RUtilities.getRhomePath().
-						if (R_HOME == null || !(new File(R_HOME).exists())) {
-							// Set "R_HOME" system property.
-							R_HOME = RUtilities.getRhomePath();
-							if (R_HOME != null) {
-								System.setProperty(R_HOME_KEY, R_HOME);
-								LOG.log(logLvl, "'" + R_HOME_KEY + "' set to '" + System.getProperty(R_HOME_KEY) + "'");
-							}
-						}
-						if (R_HOME == null)
-							throw new RSessionWrapperException(
-									"Correct path to the R installation directory could not be obtained "
-											+ "neither automatically, nor via the '" + R_HOME_KEY + "' environment variable. "
-											+ "Please try to set it manually in the startMZmine script.");
-
-
-						//						// Security...
-						//						Properties props = new Properties();
-						//						props.setProperty("remote", "enable");
-						//						props.setProperty("auth", "required");
-
-						// Under *NUX, create the very first Rserve instance (kind of proxy), designed 
-						// only to spawn other (computing) instances (Released at app. exit - see note below).
 						synchronized (RSessionWrapper.R_SESSION_SEMAPHORE) {
+							
+							if (R_HOME == null) { R_HOME = System.getenv(R_HOME_KEY); }
+
+							// If retrieving 'R_HOME' from environment failed, try to find out automatically.
+							// (Since 'Rsession.newInstanceTry()', checks the environment first).
+							// @See RUtilities.getRhomePath().
+							if (R_HOME == null || !(new File(R_HOME).exists())) {
+								// Set "R_HOME" system property.
+								R_HOME = RUtilities.getRhomePath();
+								if (R_HOME != null) {
+									System.setProperty(R_HOME_KEY, R_HOME);
+									LOG.log(logLvl, "'" + R_HOME_KEY + "' set to '" + System.getProperty(R_HOME_KEY) + "'");
+								}
+							}
+							if (R_HOME == null)
+								throw new RSessionWrapperException(
+										"Correct path to the R installation directory could not be obtained "
+												+ "neither automatically, nor via the '" + R_HOME_KEY + "' environment variable. "
+												+ "Please try to set it manually in the startMZmine script.");
+	
+	
+							//						// Security...
+							//						Properties props = new Properties();
+							//						props.setProperty("remote", "enable");
+							//						props.setProperty("auth", "required");
+	
+							// Under *NUX, create the very first Rserve instance (kind of proxy), designed 
+							// only to spawn other (computing) instances (Released at app. exit - see note below).
 							if (!isWindows && RSessionWrapper.MASTER_SESSION == null) {
 
 								// We absolutely need real new instance on a new port here
@@ -217,6 +218,7 @@ public class RSessionWrapper {
 						// before trying to get another one).					
 						// Win: Synch with any previous session, if applicable. 
 						// *NUX: Synch with nothing that matters.
+						Object rSemaphore = (isWindows) ? RSessionWrapper.R_SESSION_SEMAPHORE : this.R_DUMMY_SEMAPHORE;
 						synchronized (rSemaphore) { //RUtilities.R_SEMAPHORE) {
 
 							RserverConf conf;

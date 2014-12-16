@@ -36,6 +36,7 @@
 				<configuration>
 					<descriptors>
 						<descriptor>assembly.xml</descriptor>
+				  		<descriptor>scripts2root.xml</descriptor>
 				  		<descriptor>release2zip.xml</descriptor>
 					</descriptors>
 			    	<excludes>

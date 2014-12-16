@@ -146,9 +146,11 @@ public class BaselineCorrectionTask extends AbstractTask {
 			// If this task was canceled, stop processing.
 			if (!isCanceled() && correctedDataFile != null) {
 
+				this.correctedDataFile = correctedDataFile;
+				
 				// Add the newly created file to the project
 				final MZmineProject project = MZmineCore.getCurrentProject();
-				project.addFile(correctedDataFile);
+				project.addFile(this.correctedDataFile);
 
 				// Remove the original data file if requested.
 				if (removeOriginal) {
