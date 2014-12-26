@@ -20,6 +20,7 @@
 package net.sf.mzmine.main;
 
 import net.sf.mzmine.datamodel.RawDataFile;
+import net.sf.mzmine.util.R.RSessionWrapper;
 
 /**
  * Shutdown hook - invoked on JRE shutdown. This method saves current
@@ -29,19 +30,28 @@ class ShutDownHook extends Thread {
 
     public void start() {
 
-	// Save configuration
-	try {
-	    MZmineCore.getConfiguration().saveConfiguration(
-		    MZmineConfiguration.CONFIG_FILE);
-	} catch (Exception e) {
-	    e.printStackTrace();
-	}
+		// Save configuration on exit only if we have GUI - we don't want to
+		// if we only run a batch.
+		if (MZmineCore.getDesktop().getMainWindow() != null) {
+		// Save configuration
+		try {
+			MZmineCore.getConfiguration().saveConfiguration(
+				MZmineConfiguration.CONFIG_FILE);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-	// Close all temporary files
-	RawDataFile dataFiles[] = MZmineCore.getCurrentProject().getDataFiles();
-	for (RawDataFile dataFile : dataFiles) {
-	    dataFile.close();
-	}
+		// Close all temporary files
+		RawDataFile dataFiles[] = MZmineCore.getCurrentProject().getDataFiles();
+		for (RawDataFile dataFile : dataFiles) {
+			dataFile.close();
+				}
+			}
+
+			// Cleanup Rserve stuffs.
+			synchronized (RSessionWrapper.R_SESSION_SEMAPHORE) {
+				RSessionWrapper.CleanAll();
+		}
 
     }
 }

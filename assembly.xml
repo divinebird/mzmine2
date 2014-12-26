@@ -5,7 +5,8 @@
 	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
 	<id>MZmine 2 distribution package</id>
 	<formats>
-		<format>zip</format>
+		<!--<format>zip</format>-->
+		<format>dir</format>
 	</formats>
 	<includeBaseDirectory>true</includeBaseDirectory>
 	<dependencySets>
@@ -24,11 +25,11 @@
 		<fileSet>
 			<directory>src/main/conf</directory>
 			<outputDirectory>conf</outputDirectory>
-			<excludes>
+			<!--<excludes>
 				<!-- Exclude the current configuration file, if it exists - initial MZmine 
 					distribution should be provided with empty configuration -->
 				<exclude>*</exclude>
-			</excludes>
+			</excludes>-->
 		</fileSet>
 		<fileSet>
 			<directory>src/main/icons</directory>

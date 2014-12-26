@@ -23,9 +23,9 @@ import javax.annotation.Nonnull;
 
 import net.sf.mzmine.datamodel.RawDataFile;
 import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.BaselineCorrector;
-import net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection.RSession;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RUtilities;
+import net.sf.mzmine.util.R.RSessionWrapper;
+import net.sf.mzmine.util.R.RSessionWrapperException;
 
 /**
  * @description Peak Detection baseline corrector.
@@ -41,11 +41,12 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 
 	@Override
 	public String[] getRequiredRPackages() {
-		return new String[] { "rJava", "baseline" };
+		return new String[] { /*"rJava", "Rserve",*/ "baseline" };
 	}
 
 	@Override
-	public double[] computeBaseline(final RSession rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) {
+	public double[] computeBaseline(final RSessionWrapper rSession, final RawDataFile origDataFile, double[] chromatogram, ParameterSet parameters) 
+			throws RSessionWrapperException {
 
 		// Peak Detection parameters.
 		int left = parameters.getParameter(PeakDetectionCorrectorParameters.LEFT).getValue();
@@ -58,42 +59,35 @@ public class PeakDetectionCorrector extends BaselineCorrector {
 
 
 		final double[] baseline;
-		synchronized (RUtilities.R_SEMAPHORE) {
 
-			try {
-				// Set chromatogram.
-				rSession.assignDoubleArray("chromatogram", chromatogram);
-				// Transform chromatogram.
-				rSession.eval("mat = matrix(chromatogram, nrow=1)");
+		// Set chromatogram.
+		rSession.assign("chromatogram", chromatogram);
+		// Transform chromatogram.
+		rSession.eval("mat = matrix(chromatogram, nrow=1)");
 
-				// Calculate baseline.
-				rSession.eval("bl = NULL");
-				// This method can fail for some bins when "useBins" is enabled, or more generally speaking for
-				// abusive parameter set
-				String cmd = "tryCatch({" +
-						"bl = baseline(mat, left=" + left + ", right=" + right + 
-						", lwin=" + lwin + ", rwin=" + rwin + ", snminimum=" + snminimum + 
-						", mono=" + mono + ", multiplier=" + multiplier + ", method='peakDetection')" +
-						"}, warning = function(war) {" +
-						"message(\"<R warning>: \", war);" +
-						"}, error = function(err) {" +
-						"message(\"<R error>: \", err);" +
-						"}, finally = {" +
-						//"" +
-						"})";
-				rSession.eval(cmd);
-				// Return a flat baseline (passing by the lowest intensity scan - "min(chromatogram)") in case of failure
-				// Anyway, this usually happens when "chromatogram" is fully flat and zeroed.
-				rSession.eval(
-						"if (!is.null(bl)) { baseline <- getBaseline(bl); } else { baseline <- matrix(rep(min(chromatogram), length(chromatogram)), nrow=1); }"
-						);
-				baseline = rSession.collectDoubleArray("baseline");
-			}
-			catch (Throwable t) {
-				//t.printStackTrace();
-				throw new IllegalStateException("R error during baseline correction (" + this.getName() + ").", t);
-			}
-		}
+		// Calculate baseline.
+		rSession.eval("bl = NULL");
+		// This method can fail for some bins when "useBins" is enabled, or more generally speaking for
+		// abusive parameter set
+		String cmd = "tryCatch({" +
+				"bl = baseline(mat, left=" + left + ", right=" + right + 
+				", lwin=" + lwin + ", rwin=" + rwin + ", snminimum=" + snminimum + 
+				", mono=" + mono + ", multiplier=" + multiplier + ", method='peakDetection')" +
+				"}, warning = function(war) {" +
+				"message(\"<R warning>: \", war);" +
+				"}, error = function(err) {" +
+				"message(\"<R error>: \", err);" +
+				"}, finally = {" +
+				//"" +
+				"})";
+		rSession.eval(cmd);
+		// Return a flat baseline (passing by the lowest intensity scan - "min(chromatogram)") in case of failure
+		// Anyway, this usually happens when "chromatogram" is fully flat and zeroed.
+		rSession.eval(
+				"if (!is.null(bl)) { baseline <- getBaseline(bl); } else { baseline <- matrix(rep(min(chromatogram), length(chromatogram)), nrow=1); }"
+				);
+		baseline = (double[]) rSession.collect("baseline");
+
 		return baseline;
 	}
 

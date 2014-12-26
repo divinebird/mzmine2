@@ -40,11 +40,13 @@ import net.sf.mzmine.modules.peaklistmethods.peakpicking.deconvolution.PeakResol
 import net.sf.mzmine.modules.peaklistmethods.peakpicking.deconvolution.ResolvedPeak;
 import net.sf.mzmine.modules.peaklistmethods.peakpicking.deconvolution.centwave.CentWaveDetectorParameters.PeakIntegrationMethod;
 import net.sf.mzmine.parameters.ParameterSet;
-import net.sf.mzmine.util.RUtilities;
+import net.sf.mzmine.util.R.RUtilities;
 import net.sf.mzmine.util.Range;
 
-import org.rosuda.JRI.REXP;
-import org.rosuda.JRI.Rengine;
+//import org.rosuda.JRI.REXP;
+//import org.rosuda.JRI.Rengine;
+import org.rosuda.REngine.REXP;
+import org.rosuda.REngine.REngine;
 
 /**
  * Use XCMS findPeaks.centWave to identify peaks.
@@ -165,7 +167,7 @@ public class CentWaveDetector implements PeakResolver {
         LOG.finest("Detecting peaks.");
 
         // Get R engine.
-        final Rengine rEngine;
+        final REngine rEngine;
         try {
             rEngine = RUtilities.getREngine();
         }

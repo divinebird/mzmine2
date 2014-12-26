@@ -19,15 +19,13 @@
 package net.sf.mzmine.modules.rawdatamethods.filtering.baselinecorrection;
 
 import java.awt.Window;
-
 import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.parameters.dialogs.ParameterSetupDialog;
 
 /**
- * @description Same as "ParameterSetupDialog", but any change on the parameters
- *              is immediately recorded to the related ParameterSet, such that
- *              those parameters can be obtained at any time, even before having
- *              started running the module.
+ * @description Same as "ParameterSetupDialog", but any change on the parameters is
+ * immediately recorded to the related ParameterSet, such that those parameters can be
+ * obtained at any time, even before having started running the module.
  * 
  * @author Gauthier Boaglio
  * @date Nov 6, 2014
@@ -42,11 +40,11 @@ public class InstantUpdateSetupDialog extends ParameterSetupDialog {
     public InstantUpdateSetupDialog(Window parent, boolean valueCheckRequired,
 	    ParameterSet parameters) {
 	super(parent, valueCheckRequired, parameters);
-    }
+	}
 
-    @Override
-    protected void parametersChanged() {
-	this.updateParameterSetFromComponents();
-    }
+	@Override
+	protected void parametersChanged() {
+		this.updateParameterSetFromComponents();
+	}
 
 }

@@ -12,6 +12,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<cdk.version>1.5.9</cdk.version>
+		<build.timestamp>${maven.build.timestamp}</build.timestamp>
+		<maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format> <!-- yyyyMMdd-HHmm -->
 	</properties>
 	<build>
 		<plugins>
@@ -23,6 +25,7 @@
 					<source>1.7</source>
 					<target>1.7</target>
 					<encoding>UTF-8</encoding>
+					<!--<compilerArgument>-Xlint:unchecked</compilerArgument>-->
 				</configuration>
 			</plugin>
 			<plugin>
@@ -32,7 +35,12 @@
 				<configuration>
 					<descriptors>
 						<descriptor>assembly.xml</descriptor>
+				  		<descriptor>scripts2root.xml</descriptor>
+				  		<descriptor>release2zip.xml</descriptor>
 					</descriptors>
+			    	<excludes>
+			    	    <exclude>**/*.zip</exclude>
+			    	</excludes>
 					<appendAssemblyId>false</appendAssemblyId>
 				</configuration>
 				<executions>
@@ -58,6 +66,37 @@
 					</archive>
 				</configuration>
 			</plugin>
+            <plugin>
+                <!-- Run with:
+                    mvn bash:run
+                    mvn install
+                -->
+                <groupId>com.atlassian.maven.plugins</groupId>
+                <artifactId>bash-maven-plugin</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <script>
+						if [ -n "${DO_RUN}" ]; then
+	                    	echo ">>> Launching MZmine!"
+	                    	PWD_VAR="$(pwd)"
+	                        echo "Working directory is: \"$PWD_VAR\""
+	                        cd $PWD_VAR"/target/"${project.artifactId}-${project.version}
+	                        ./startMZmine_Linux.sh
+	                    	echo ">>> Terminating MZmine!"
+	                    	exit 0
+	                    fi
+                    </script>
+                </configuration>
+            </plugin>
 		</plugins>
 		<resources>
 			<resource>
@@ -81,6 +120,11 @@
 			<id>lib</id>
 			<name>MZmine local libraries</name>
 			<url>file://${project.basedir}/src/main/lib</url>
+		</repository>
+		<repository>
+			<id>local-repo</id>
+			<name>MZmine local libraries</name>
+			<url>file:///home/golgauth/.m2/repository</url>
 		</repository>
 	</repositories>
 	<dependencies>
@@ -320,6 +364,7 @@
 			<artifactId>chemspider-api</artifactId>
 			<version>1.0</version>
 		</dependency>
+<!-- rJava: JRI - REMOVED
 		<dependency>
 			<groupId>rJava</groupId>
 			<artifactId>JRI</artifactId>
@@ -335,6 +380,19 @@
 			<artifactId>REngine</artifactId>
 			<version>0.9.3</version>
 		</dependency>
+-->
+<!-- rosuda: REngine/Rserve -->
+		<dependency> 
+			<groupId>org.nuiton.thirdparty</groupId>
+			<artifactId>REngine</artifactId>
+			<version>1.7-3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.nuiton.thirdparty</groupId>
+			<artifactId>Rserve</artifactId>
+			<version>1.7-3</version>
+		</dependency>
+<!-- END -->
 		<dependency>
 			<groupId>mzmine</groupId>
 			<artifactId>macspecificsetup</artifactId>
@@ -384,6 +442,16 @@
 			<artifactId>vecmath</artifactId>
 			<version>1.6.0-pre11</version>
 		</dependency>
+
+
+		<!-- Bash Maven Plugin (for running bash scripts) -->
+        <dependency>
+            <groupId>com.atlassian.maven.plugins</groupId>
+            <artifactId>bash-maven-plugin</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
 
 	</dependencies>
 

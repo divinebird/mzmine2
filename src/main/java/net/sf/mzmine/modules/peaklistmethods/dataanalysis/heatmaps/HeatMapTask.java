@@ -36,12 +36,13 @@ import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.parameters.UserParameter;
 import net.sf.mzmine.taskcontrol.AbstractTask;
 import net.sf.mzmine.taskcontrol.TaskStatus;
-import net.sf.mzmine.util.RUtilities;
+import net.sf.mzmine.util.R.RUtilities;
 
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.inference.TTestImpl;
-import org.rosuda.JRI.Rengine;
+//import org.rosuda.JRI.Rengine;
+import org.rosuda.REngine.REngine;
 
 public class HeatMapTask extends AbstractTask {
 
@@ -123,7 +124,7 @@ public class HeatMapTask extends AbstractTask {
 	    return;
 	}
 
-	Rengine rEngine = null;
+	REngine rEngine = null;
 	try {
 	    rEngine = RUtilities.getREngine();
 	} catch (Throwable t) {

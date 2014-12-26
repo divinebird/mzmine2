@@ -221,11 +221,14 @@ public final class MZmineCore {
 	    NewVersionCheck NVC = new NewVersionCheck(CheckType.DESKTOP);
 	    new Thread(NVC).start();
 
-	    // register shutdown hook only if we have GUI - we don't want to
-	    // save configuration on exit if we only run a batch
-	    ShutDownHook shutDownHook = new ShutDownHook();
-	    Runtime.getRuntime().addShutdownHook(shutDownHook);
+			// Moved below since Headless version needs it too.
+//			ShutDownHook shutDownHook = new ShutDownHook();
+//			Runtime.getRuntime().addShutdownHook(shutDownHook);
 	}
+	// register shutdown hook only if we have GUI - we don't want to
+	// save configuration on exit if we only run a batch
+	ShutDownHook shutDownHook = new ShutDownHook();
+	Runtime.getRuntime().addShutdownHook(shutDownHook);
 
 	// if arguments were specified (= running without GUI), run the batch
 	// mode
