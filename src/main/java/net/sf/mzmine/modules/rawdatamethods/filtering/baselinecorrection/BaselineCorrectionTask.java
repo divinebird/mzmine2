@@ -131,7 +131,7 @@ public class BaselineCorrectionTask extends AbstractTask {
 
 			// Check R availability, by trying to open the connection.
 			String[] reqPackages = this.baselineCorrectorProcStep.getModule().getRequiredRPackages();
-			this.rSession = new RSessionWrapper(/*this.rEngineType,*/ reqPackages);
+			this.rSession = new RSessionWrapper(/*this.rEngineType,*/ reqPackages, null);
 			this.rSession.open();
 
 			// Check & load required R packages.

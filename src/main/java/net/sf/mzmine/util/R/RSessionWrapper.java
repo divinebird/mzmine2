@@ -125,6 +125,7 @@ public class RSessionWrapper {
 //	private RengineType rEngineType;
 	private Object rEngine = null;
 	private String[] reqPackages;
+	private String[] reqPackagesVersions;
 
 	private Rsession session;
 	private int rServePid = -1;
@@ -135,9 +136,10 @@ public class RSessionWrapper {
 	/**
 	 * Constructor.
 	 */
-	public RSessionWrapper(/*RengineType type,*/ String[] reqPackages) {
+	public RSessionWrapper(/*RengineType type,*/ String[] reqPackages, String[] reqPackagesVersions) {
 //		this.rEngineType = type;
 		this.reqPackages = reqPackages;
+		this.reqPackagesVersions = reqPackagesVersions;
 	}
 
 
@@ -336,13 +338,41 @@ public class RSessionWrapper {
 				// Remain silent if eval KO ("server down").
 				version_ok = Integer.MIN_VALUE;
 			}
-			// Throw loading failure only if eval OK (package not found).
+			// Throw version failure only if eval OK (package not found).
 			// ("server down" case will be handled soon enough).
 			if (version_ok == 0)
 				if (!this.userCanceled) throw new RSessionWrapperException(errorMsg);
 
 			LOG.log(logLvl, "Checked package version: '" + packageName + "' for version '" + version + "'.");
 		}
+	}
+
+	public String checkPackagesVersions() throws RSessionWrapperException {
+
+		if (this.reqPackages == null || this.reqPackagesVersions == null) return null;
+		
+		if (this.reqPackages.length != this.reqPackagesVersions.length) {
+			if (!this.userCanceled) throw new IllegalStateException(
+					"'reqPackages' an 'reqPackagesVersions' arrays must be the same length!");
+		}
+
+		String reqPackage = null;
+		try {
+			for (int i=0; i < this.reqPackages.length; ++i) {
+				
+				// Pass null as a version to skip version check for given package.
+				if (this.reqPackagesVersions[i] == null) { continue; }
+				
+				reqPackage = this.reqPackages[i];
+				this.checkPackageVersion(this.reqPackages[i], this.reqPackagesVersions[i]);
+			}
+			return null;
+		} catch (RSessionWrapperException e) {
+			LOG.severe("Package version check failed: '" + reqPackage + "'. " + e.getMessage());
+			//return reqPackage;
+			if (!this.userCanceled) throw new RSessionWrapperException(e.getMessage());
+		}
+		return reqPackage;			
 	}
 	
 	public void loadPackage(String packageName) throws RSessionWrapperException {
@@ -379,6 +409,8 @@ public class RSessionWrapper {
 
 	public String loadRequiredPackages() {
 
+		if (this.reqPackages == null) return null;
+		
 		String reqPackage = null;
 		try {
 			for (int i=0; i < this.reqPackages.length; ++i) {

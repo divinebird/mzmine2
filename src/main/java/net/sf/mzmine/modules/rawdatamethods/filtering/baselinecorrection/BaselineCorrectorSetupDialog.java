@@ -210,7 +210,7 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 			// Check R availability, by trying to open the connection
 			try {
 				String[] reqPackages = baselineCorrector.getRequiredRPackages();
-				this.rSession = new RSessionWrapper(/*baselineCorrector.getRengineType(),*/ reqPackages);
+				this.rSession = new RSessionWrapper(/*baselineCorrector.getRengineType(),*/ reqPackages, null);
 				this.rSession.open();
 			}
 			catch (RSessionWrapperException e) {

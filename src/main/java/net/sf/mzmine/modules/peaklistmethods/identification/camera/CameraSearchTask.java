@@ -71,9 +71,6 @@ public class CameraSearchTask extends AbstractTask {
 	private static final Logger LOG = Logger.getLogger(CameraSearchTask.class
 			.getName());
 
-	// Required package name.
-	private static final String PACKAGE_NAME = "CAMERA";
-	
 	// Required version of CAMERA.
 	private static final String CAMERA_VERSION = "1.12";
 
@@ -211,19 +208,10 @@ public class CameraSearchTask extends AbstractTask {
 			//			    + t.getMessage() + ')');
 			//	}
 	
-			String[] reqPackages = {PACKAGE_NAME};
-			this.rSession = new RSessionWrapper(/*this.rEngineType,*/ reqPackages);
-			this.rSession.open();
-	
-			// Check & load required R packages.
-			String missingPackage = null;
-			missingPackage = this.rSession.loadRequiredPackages();
-			if (missingPackage != null) {
-				String msg = "The \"Camera search module\" requires " +
-						"the \"" + missingPackage + "\" R package, which couldn't be loaded - is it installed in R?";
-				throw new RSessionWrapperException(msg);
-			}
-	
+			String[] reqPackages = { "CAMERA" };
+			String[] reqPackagesVersions = { CAMERA_VERSION };
+			this.rSession = new RSessionWrapper(/*this.rEngineType,*/ reqPackages, reqPackagesVersions);
+			this.rSession.open();	
 	
 	//		// Is R installed - load CAMERA library.
 	//		if (rEngine.eval("require(CAMERA)").asBool().isFALSE()) {
@@ -241,8 +229,17 @@ public class CameraSearchTask extends AbstractTask {
 	//					"An old version of the CAMERA package is installed in R - please update CAMERA to version "
 	//							+ CAMERA_VERSION + " or later");
 	//		}
-			this.rSession.checkPackageVersion(PACKAGE_NAME, CAMERA_VERSION);
-	
+			// Check & load required R packages.
+			String missingPackage = null;
+			missingPackage = this.rSession.loadRequiredPackages();
+			if (missingPackage != null) {
+				String msg = "The \"Camera search module\" requires " +
+						"the \"" + missingPackage + "\" R package, which couldn't be loaded - is it installed in R?";
+				throw new RSessionWrapperException(msg);
+			}
+			this.rSession.checkPackagesVersions();
+			
+			
 			// Create empty peaks matrix.
 			this.rSession.eval("columnHeadings <- c('mz','mzmin','mzmax','rt','rtmin','rtmax','into','intb','maxo','sn')");
 			this.rSession.eval("peaks <- matrix(nrow=0, ncol=length(columnHeadings))");
@@ -445,12 +442,12 @@ public class CameraSearchTask extends AbstractTask {
 		} 
 		catch (RSessionWrapperException e) {
 			if (!this.userCanceled) {
-				errorMsg = "'R computing error' during baseline correction. \n" + e.getMessage();
+				errorMsg = "'R computing error' during camera search. \n" + e.getMessage();
 			}
 		}
 		catch (Exception e) {
 			if (!this.userCanceled) {
-				errorMsg = "'Unknown error' during baseline correction. \n" + e.getMessage();
+				errorMsg = "'Unknown error' during camera search. \n" + e.getMessage();
 			}
 		}
 
