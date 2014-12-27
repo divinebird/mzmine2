@@ -50,7 +50,7 @@ import net.sf.mzmine.taskcontrol.TaskStatus;
 import net.sf.mzmine.util.Range;
 import net.sf.mzmine.util.R.RSessionWrapper;
 import net.sf.mzmine.util.R.RSessionWrapperException;
-import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
+//import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
 
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
@@ -192,9 +192,9 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 		public RawDataFile getDataFile() {
 			return this.dataFile;
 		}
-		public RengineType getRengineType() {
-			return this.rSession.getRengineType();
-		}
+//		public RengineType getRengineType() {
+//			return this.rSession.getRengineType();
+//		}
 
 		@Override
 		public void run() {
@@ -210,7 +210,7 @@ public class BaselineCorrectorSetupDialog extends ParameterSetupDialogWithChroma
 			// Check R availability, by trying to open the connection
 			try {
 				String[] reqPackages = baselineCorrector.getRequiredRPackages();
-				this.rSession = new RSessionWrapper(baselineCorrector.getRengineType(), reqPackages);
+				this.rSession = new RSessionWrapper(/*baselineCorrector.getRengineType(),*/ reqPackages);
 				this.rSession.open();
 			}
 			catch (RSessionWrapperException e) {

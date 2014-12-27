@@ -77,22 +77,22 @@ public class RSessionWrapper {
 	private static final String RS_DYN_PWD = String.valueOf(java.util.UUID.randomUUID());
 	private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
 
-	public enum RengineType {
-
-		JRIengine("JRIengine - mono-instance engine"), 
-		Rserve("Rserve - multi-instance of Rserve (fast)");
-
-		private String type;
-
-		RengineType(String type) {
-			this.type = type;
-		}
-
-		public String toString() {
-			return type;
-		}
-
-	}
+//	public enum RengineType {
+//
+//		JRIengine("JRIengine - mono-instance engine"), 
+//		Rserve("Rserve - multi-instance of Rserve (fast)");
+//
+//		private String type;
+//
+//		RengineType(String type) {
+//			this.type = type;
+//		}
+//
+//		public String toString() {
+//			return type;
+//		}
+//
+//	}
 
 
 	public static class NullPrintStream extends PrintStream {
@@ -122,7 +122,7 @@ public class RSessionWrapper {
 	}
 
 
-	private RengineType rEngineType;
+//	private RengineType rEngineType;
 	private Object rEngine = null;
 	private String[] reqPackages;
 
@@ -135,8 +135,8 @@ public class RSessionWrapper {
 	/**
 	 * Constructor.
 	 */
-	public RSessionWrapper(RengineType type, String[] reqPackages) {
-		this.rEngineType = type;
+	public RSessionWrapper(/*RengineType type,*/ String[] reqPackages) {
+//		this.rEngineType = type;
 		this.reqPackages = reqPackages;
 	}
 
@@ -317,11 +317,34 @@ public class RSessionWrapper {
 		}
 	}
 
-	public RengineType getRengineType() {
-		return this.rEngineType;
+//	public RengineType getRengineType() {
+//		return this.rEngineType;
+//	}
+
+
+	public void checkPackageVersion(String packageName, String version) throws RSessionWrapperException {
+
+		String checkVersionCode = "packageVersion('" + packageName + "') >= '" + version + "\'";
+		String errorMsg = "An old version of the '" + packageName + "' package is installed in R - please update '" + packageName + "' to version "
+				+ version + " or later.";
+
+		if (this.session != null && !this.userCanceled) {
+			int version_ok = 0;
+			try {
+				version_ok = ((RConnection) this.rEngine).eval(checkVersionCode).asInteger();
+			} catch (RserveException | REXPMismatchException e) {
+				// Remain silent if eval KO ("server down").
+				version_ok = Integer.MIN_VALUE;
+			}
+			// Throw loading failure only if eval OK (package not found).
+			// ("server down" case will be handled soon enough).
+			if (version_ok == 0)
+				if (!this.userCanceled) throw new RSessionWrapperException(errorMsg);
+
+			LOG.log(logLvl, "Checked package version: '" + packageName + "' for version '" + version + "'.");
+		}
 	}
-
-
+	
 	public void loadPackage(String packageName) throws RSessionWrapperException {
 
 		String loadCode = "library(" + packageName + ", logical.return = TRUE)";
@@ -512,18 +535,18 @@ public class RSessionWrapper {
 	}
 	/**
 	 * Casting the result to the correct type is left to the user.
-	 * @param objName
+	 * @param obj
 	 * @return
 	 * @throws RSessionWrapperException
 	 */
-	public Object collect(String objName) throws RSessionWrapperException {
+	public Object collect(String obj) throws RSessionWrapperException {
 
 		Object object = null;
 
 		if (this.session != null && !this.userCanceled) {
-			String msg = "Rserve error: couldn't collect R object '" + objName + "' (instance '" + this.getPID() + "').";
+			String msg = "Rserve error: couldn't collect R object '" + obj + "' (instance '" + this.getPID() + "').";
 			try {
-				object = OutputObjectFactory.getObject(((RConnection) this.rEngine).eval(objName));
+				object = OutputObjectFactory.getObject(((RConnection) this.rEngine).eval(obj));
 			} 
 			catch (RserveException | REXPMismatchException e) {
 				throw new RSessionWrapperException(msg);
@@ -556,7 +579,7 @@ public class RSessionWrapper {
 
 		this.userCanceled = userCanceled;
 
-		if (this.session != null && this.rEngineType == RengineType.Rserve) {
+		if (this.session != null /*&& this.rEngineType == RengineType.Rserve*/) {
 
 			try {
 

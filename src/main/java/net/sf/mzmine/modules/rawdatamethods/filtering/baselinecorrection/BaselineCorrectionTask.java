@@ -34,7 +34,7 @@ import net.sf.mzmine.taskcontrol.TaskStatus;
 import net.sf.mzmine.util.TextUtils;
 import net.sf.mzmine.util.R.RSessionWrapper;
 import net.sf.mzmine.util.R.RSessionWrapperException;
-import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
+//import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -73,7 +73,7 @@ public class BaselineCorrectionTask extends AbstractTask {
 	private final ParameterSet commonParameters;
 
 
-	private final RengineType rEngineType;
+//	private final RengineType rEngineType;
 	private RSessionWrapper rSession;
 
 	private boolean userCanceled;
@@ -87,7 +87,7 @@ public class BaselineCorrectionTask extends AbstractTask {
 	public BaselineCorrectionTask(final RawDataFile dataFile, final ParameterSet parameters) {
 
 		// Initialize.
-		this.rEngineType = parameters.getParameter(BaselineCorrectionParameters.RENGINE_TYPE).getValue();
+//		this.rEngineType = parameters.getParameter(BaselineCorrectionParameters.RENGINE_TYPE).getValue();
 		this.origDataFile = dataFile;
 		this.correctedDataFile = null;
 		this.removeOriginal = parameters.getParameter(BaselineCorrectionParameters.REMOVE_ORIGINAL).getValue();
@@ -131,7 +131,7 @@ public class BaselineCorrectionTask extends AbstractTask {
 
 			// Check R availability, by trying to open the connection.
 			String[] reqPackages = this.baselineCorrectorProcStep.getModule().getRequiredRPackages();
-			this.rSession = new RSessionWrapper(this.rEngineType, reqPackages);
+			this.rSession = new RSessionWrapper(/*this.rEngineType,*/ reqPackages);
 			this.rSession.open();
 
 			// Check & load required R packages.

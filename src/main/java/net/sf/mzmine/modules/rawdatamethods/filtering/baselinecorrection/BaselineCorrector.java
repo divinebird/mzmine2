@@ -35,7 +35,7 @@ import net.sf.mzmine.parameters.ParameterSet;
 import net.sf.mzmine.util.Range;
 import net.sf.mzmine.util.R.RSessionWrapper;
 import net.sf.mzmine.util.R.RSessionWrapperException;
-import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
+//import net.sf.mzmine.util.R.RSessionWrapper.RengineType;
 
 /**
  * @description Abstract corrector class for baseline correction. Has to be specialized via the
@@ -60,7 +60,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 	private String suffix;
 
 	// General parameters (common to all baseline correction methods).
-	private RengineType rEngineType;
+//	private RengineType rEngineType;
 	private ChromatogramType chromatogramType;
 	private double binWidth;
 	private boolean useBins;
@@ -93,7 +93,7 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 
 		// Get common parameters.
 		suffix = generalParameters.getParameter(BaselineCorrectionParameters.SUFFIX).getValue();
-		rEngineType = generalParameters.getParameter(BaselineCorrectionParameters.RENGINE_TYPE).getValue();
+//		rEngineType = generalParameters.getParameter(BaselineCorrectionParameters.RENGINE_TYPE).getValue();
 		chromatogramType = generalParameters.getParameter(BaselineCorrectionParameters.CHROMOTAGRAM_TYPE).getValue();
 		binWidth = generalParameters.getParameter(BaselineCorrectionParameters.MZ_BIN_WIDTH).getValue();
 		useBins = generalParameters.getParameter(BaselineCorrectionParameters.USE_MZ_BINS).getValue();
@@ -561,12 +561,12 @@ public abstract class BaselineCorrector implements BaselineProvider, MZmineModul
 		progressMap.remove(origDataFile);
 	}
 
-	// R engine type
-	public RengineType getRengineType() {
-		//		return MZmineCore.getConfiguration().getModuleParameters(BaselineCorrectionModule.class)
-		//				.getParameter(BaselineCorrectionParameters.RENGINE_TYPE).getValue();
-		return this.rEngineType;
-	}
+//	// R engine type
+//	public RengineType getRengineType() {
+//		//		return MZmineCore.getConfiguration().getModuleParameters(BaselineCorrectionModule.class)
+//		//				.getParameter(BaselineCorrectionParameters.RENGINE_TYPE).getValue();
+//		return this.rEngineType;
+//	}
 	// Chromatogram type
 	public ChromatogramType getChromatogramType() {
 		//		return MZmineCore.getConfiguration().getModuleParameters(BaselineCorrectionModule.class)
