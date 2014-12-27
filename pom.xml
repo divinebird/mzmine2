@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>net.sf.mzmine</groupId>
 	<artifactId>MZmine</artifactId>
-	<version>2.11-EEE</version>
+	<version>2.12-EEE</version>
 	<name>MZmine</name>
 	<description>
 		MZmine 2 is an open-source project delivering a software for mass-spectrometry data processing, with the main focus on LC-MS data. 
@@ -15,6 +15,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<cdk.version>1.5.7</cdk.version>
+		<!-- Note: CDK version 1.5.8 breaks the molecular structure viewer of JChemPaint 
+			3.4, due to missing GeometryTools class -->
 		<build.timestamp>${maven.build.timestamp}</build.timestamp>
 		<maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format> <!-- yyyyMMdd-HHmm -->
 	</properties>
@@ -23,7 +25,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.4</version>
+				<version>3.1</version>
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
@@ -33,15 +35,14 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.4.1</version>
 				<configuration>
 					<descriptors>
 						<descriptor>assembly.xml</descriptor>
 				  		<descriptor>scripts2root.xml</descriptor>
 				  		<descriptor>release2zip.xml</descriptor>
 					</descriptors>
-			    	<excludes>
-			    	    <exclude>**/*.zip</exclude>
-			    	</excludes>
+					<appendAssemblyId>false</appendAssemblyId>
 				</configuration>
 				<executions>
 					<execution>
@@ -56,19 +57,16 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.4</version>
+				<version>2.5</version>
 				<configuration>
 					<archive>
 						<index>true</index>
 						<manifest>
-							<addClasspath>true</addClasspath>
+							<addClasspath>false</addClasspath>
 						</manifest>
 					</archive>
 				</configuration>
 			</plugin>
-
-
-
             <plugin>
                 <!-- Run with:
                     mvn bash:run
@@ -93,17 +91,13 @@
 	                    	PWD_VAR="$(pwd)"
 	                        echo "Working directory is: \"$PWD_VAR\""
 	                        cd $PWD_VAR"/target/"${project.artifactId}-${project.version}
-	                        ./startMZmine_Linux.sh
+	                        ./${project.artifactId}-${project.version}/startMZmine_Linux.sh
 	                    	echo ">>> Terminating MZmine!"
 	                    	exit 0
 	                    fi
                     </script>
                 </configuration>
             </plugin>
-
-
-
-
 		</plugins>
 		<resources>
 			<resource>
@@ -117,33 +111,34 @@
 		</resources>
 	</build>
 	<repositories>
+		<!-- jmzreader and CDK repository
 		<repository>
-			<!-- jmzreader and CDK repository -->
+			<id>lib 0</id>
+			<name>MZmine local libraries 0</name>
+			<url>file:///home/golgauth/.m2/repository</url>
+		</repository> -->
+		<!-- DOWN !!!	--> 
+		<repository>
 			<id>ebi-repo</id>
 			<name>The EBI Maven 2 repository</name>
 			<url>http://www.ebi.ac.uk/~maven/m2repo</url>
 		</repository>
 		<repository>
-			<!-- jsr308 repository -->
-			<id>checker-framework-repo</id>
-			<url>http://types.cs.washington.edu/m2-repo</url>
+			<id>maven2-repo</id>
+			<name>Maven 2 repository</name>
+			<url>http://repo1.maven.org/maven2</url>
 		</repository>
 		<repository>
 			<id>lib</id>
 			<name>MZmine local libraries</name>
 			<url>file://${project.basedir}/src/main/lib</url>
 		</repository>
-		<repository>
-			<id>local-repo</id>
-			<name>MZmine local libraries</name>
-			<url>file:///home/golgauth/.m2/repository</url>
-		</repository>
 	</repositories>
 	<dependencies>
 		<dependency>
 			<groupId>org.jfree</groupId>
 			<artifactId>jfreechart</artifactId>
-			<version>1.0.17</version>
+			<version>1.0.19</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>xml-apis</artifactId>
@@ -154,7 +149,7 @@
 		<dependency>
 			<groupId>de.schlichtherle.truezip</groupId>
 			<artifactId>truezip-driver-zip</artifactId>
-			<version>7.7.6</version>
+			<version>7.7.7</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>truezip-swing</artifactId>
@@ -165,12 +160,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>17.0</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-lang</groupId>
-			<artifactId>commons-lang</artifactId>
-			<version>2.6</version>
+			<version>18.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -300,7 +290,7 @@
 		<dependency>
 			<groupId>uk.ac.ebi.pride.tools</groupId>
 			<artifactId>mgf-parser</artifactId>
-			<version>1.2.2</version>
+			<version>1.2.9</version>
 		</dependency>
 		<dependency>
 			<groupId>uk.ac.ebi.pride.tools</groupId>
@@ -318,9 +308,16 @@
 			<version>1.2</version>
 		</dependency>
 		<dependency>
+			<groupId>uk.ac.ebi.jmzml</groupId>
+			<artifactId>jmzml</artifactId>
+			<version>1.7.2.pride</version>
+			<!-- jmzml versions prior to 1.7.1 contain a critical bug that causes 
+				infinite loops when reading certain mzML files -->
+		</dependency>
+		<dependency>
 			<groupId>uk.ac.ebi.pride.tools</groupId>
 			<artifactId>pride-wrapper</artifactId>
-			<version>1.2.0</version>
+			<version>1.2.2</version>
 		</dependency>
 		<!-- End of jmzreader parsers -->
 
@@ -352,14 +349,14 @@
 		<!-- Start of JDBC drivers -->
 
 		<dependency>
-			<groupId>postgresql</groupId>
+			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>9.1-901.jdbc4</version>
+			<version>9.3-1102-jdbc41</version>
 		</dependency>
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
-			<version>5.1.18</version>
+			<version>5.1.34</version>
 		</dependency>
 		<dependency>
 			<groupId>ojdbc</groupId>
@@ -381,7 +378,6 @@
 			<artifactId>chemspider-api</artifactId>
 			<version>1.0</version>
 		</dependency>
-
 <!-- rJava: JRI -->
 		<dependency>
 			<groupId>rJava</groupId>
@@ -393,11 +389,13 @@
 			<artifactId>JRIEngine</artifactId>
 			<version>0.9.3</version>
 		</dependency>
+<!-- REMOVED ??-->
 		<dependency>
 			<groupId>rJava</groupId>
 			<artifactId>REngine</artifactId>
 			<version>0.9.3</version>
 		</dependency>
+
 <!-- rosuda: REngine/Rserve -->
 		<dependency> 
 			<groupId>org.nuiton.thirdparty</groupId>
@@ -409,8 +407,7 @@
 			<artifactId>Rserve</artifactId>
 			<version>1.7-3</version>
 		</dependency>
-
-
+<!-- END -->
 		<dependency>
 			<groupId>mzmine</groupId>
 			<artifactId>macspecificsetup</artifactId>
@@ -432,10 +429,20 @@
 			<version>20131024</version>
 		</dependency>
 
+
+		<dependency>
+			<groupId>jcampdx</groupId>
+			<artifactId>jcampdx-lib</artifactId>
+			<version>0_9_1</version>
+		</dependency>
+		<dependency>
+			<groupId>spring</groupId>
+			<artifactId>regexp</artifactId>
+			<version>1.5.0</version>
+		</dependency>
+
 		<!-- End of jars included with MZmine -->
 
-		<!-- Java3D dependency, marked as 'provided' = only for compilation ! -->
-		<!-- Setup in JRE directly: See: http://stackoverflow.com/a/24790999/1715716 -->
 		
 		<!-- Bash Maven Plugin (for running bash scripts) -->
         <dependency>
@@ -444,20 +451,42 @@
             <version>1.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        
-		<!-- REMOVED!
-		<dependency>
-			<groupId>Rsession</groupId>
-			<artifactId>Rsession</artifactId>
-			<version>1.9</version>
-		</dependency>
 
 		<dependency>
-			<groupId>RCaller</groupId>
-			<artifactId>RCaller</artifactId>
-			<version>2.4-SNAPSHOT</version>
+			<groupId>org.jogamp.jogl</groupId>
+			<artifactId>jogl-all-main</artifactId>
+			<version>2.2.4</version>
 		</dependency>
-		-->
+		<dependency>
+			<groupId>org.jogamp.gluegen</groupId>
+			<artifactId>gluegen-rt-main</artifactId>
+			<version>2.2.4</version>
+		</dependency>
+
+		<!-- Java3D dependency, marked as 'provided' = only for compilation ! -->
+		<!-- Setup in JRE directly: See: http://stackoverflow.com/a/24790999/1715716 -->
+<!--
+		<dependency>
+			<groupId>java3d</groupId>
+			<artifactId>j3dcore</artifactId>
+			<version>1.6.0-pre11</version>
+		</dependency>
+		<dependency>
+			<groupId>java3d</groupId>
+			<artifactId>j3dutils</artifactId>
+			<version>1.6.0-pre11</version>
+		</dependency>
+		<dependency>
+			<groupId>java3d</groupId>
+			<artifactId>vecmath</artifactId>
+			<version>1.6.0-pre11</version>
+		</dependency>
+-->
+
+	<!-- Required to have 'commons-lang' work corretly with mavven 3.0.5
+		cd /usr/share/maven/lib
+		sudo ln -s ../../java/commons-lang.jar .
+	-->
 
 	</dependencies>
 

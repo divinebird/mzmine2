@@ -147,5 +147,12 @@ public class CollectionUtils {
 		System.arraycopy(second, 0, result, first.length, second.length);
 		return result;
 	}
+	
+	public static <T> void matrixCopy(T[][] aSource, T[][] aDestination) {
+	    for (int i = 0; i < aSource.length; i++) {
+	        System.arraycopy(aSource[i], 0, aDestination[i], 0, aSource[i].length);
+	    }
+	}
+
 
 }

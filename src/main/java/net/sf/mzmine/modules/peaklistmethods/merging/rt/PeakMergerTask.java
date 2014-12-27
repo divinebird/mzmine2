@@ -47,6 +47,8 @@ import net.sf.mzmine.util.SortingProperty;
 
 import org.apache.commons.lang.ArrayUtils;
 
+import com.google.common.primitives.Ints;
+
 /**
  * 
  */
@@ -795,7 +797,8 @@ class PeakMergerTask extends AbstractTask {
 		HashSet<Integer> hs = new HashSet<Integer>();
 		//for (int g_i=1; g_i < groupedPeaks.size(); g_i++) {
 		for (Feature p : groupedPeaks) {
-			hs.addAll(Arrays.asList(ArrayUtils.toObject(p.getScanNumbers())));
+			//hs.addAll(Arrays.asList(ArrayUtils.toObject(p.getScanNumbers())));
+			hs.addAll(Ints.asList(p.getScanNumbers()));
 		}
 		// Sort HashSet of scans (TreeSet) by ascending order
 		List<Integer> scan_nums = new ArrayList<Integer>(new TreeSet<Integer>(hs)); 

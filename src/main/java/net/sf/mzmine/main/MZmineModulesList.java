@@ -54,6 +54,8 @@ import net.sf.mzmine.modules.peaklistmethods.isotopes.deisotoper.IsotopeGrouperM
 import net.sf.mzmine.modules.peaklistmethods.isotopes.isotopeprediction.IsotopePatternCalculator;
 import net.sf.mzmine.modules.peaklistmethods.merging.rt.PeakMergerModule;
 import net.sf.mzmine.modules.peaklistmethods.normalization.linear.LinearNormalizerModule;
+import net.sf.mzmine.modules.peaklistmethods.normalization.rtadjuster.JDXCompoundsSearchAndAdjustModule;
+import net.sf.mzmine.modules.peaklistmethods.normalization.rtadjuster.RTAdjusterModule;
 import net.sf.mzmine.modules.peaklistmethods.normalization.rtnormalizer.RTNormalizerModule;
 import net.sf.mzmine.modules.peaklistmethods.normalization.standardcompound.StandardCompoundNormalizerModule;
 import net.sf.mzmine.modules.peaklistmethods.peakpicking.deconvolution.DeconvolutionModule;
@@ -146,6 +148,12 @@ public class MZmineModulesList {
 	    
 	    // GLG HACK: Add peaks "Merging" features to peak list methods.
 	    PeakMergerModule.class,
+	    // GLG HACK: Add peaks "RT adjuster" features to peak list methods.
+	    //RTAdjusterModule.class,  		// NORMALIZATION
+	    // GLG TODO: Make this module available for simple identification
+	    //				(independently from above "RTAdjuster")...
+	    // 				See: how 'OnlineDBSearchModule' is working by itself. 
+	    JDXCompoundsSearchAndAdjustModule.class, // IDENTIFICATION + NORMALIZATION
 	    
 	    
 	    // Normalization

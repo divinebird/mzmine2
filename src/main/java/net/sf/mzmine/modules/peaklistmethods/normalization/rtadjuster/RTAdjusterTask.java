@@ -17,7 +17,7 @@
  * Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-package net.sf.mzmine.modules.peaklistmethods.normalization.rtnormalizer;
+package net.sf.mzmine.modules.peaklistmethods.normalization.rtadjuster;
 
 import java.util.Vector;
 import java.util.logging.Logger;
@@ -42,7 +42,7 @@ import net.sf.mzmine.taskcontrol.TaskStatus;
 import net.sf.mzmine.util.PeakUtils;
 import net.sf.mzmine.util.Range;
 
-class RTNormalizerTask extends AbstractTask {
+class RTAdjusterTask extends AbstractTask {
 
 	private Logger logger = Logger.getLogger(this.getClass().getName());
 
@@ -58,22 +58,16 @@ class RTNormalizerTask extends AbstractTask {
 	private boolean removeOriginal;
 	private ParameterSet parameters;
 
-	public RTNormalizerTask(ParameterSet parameters) {
+	public RTAdjusterTask(ParameterSet parameters) {
 
-		this.originalPeakLists = parameters.getParameter(
-				RTNormalizerParameters.peakLists).getValue();
+		this.originalPeakLists = parameters.getParameter(RTAdjusterParameters.peakLists).getValue();
 		this.parameters = parameters;
 
-		suffix = parameters.getParameter(RTNormalizerParameters.suffix)
-				.getValue();
-		mzTolerance = parameters.getParameter(
-				RTNormalizerParameters.MZTolerance).getValue();
-		rtTolerance = parameters.getParameter(
-				RTNormalizerParameters.RTTolerance).getValue();
-		minHeight = parameters.getParameter(RTNormalizerParameters.minHeight)
-				.getValue();
-		removeOriginal = parameters.getParameter(
-				RTNormalizerParameters.autoRemove).getValue();
+		suffix = parameters.getParameter(RTAdjusterParameters.suffix).getValue();
+//		mzTolerance = parameters.getParameter(RTAdjusterParameters.MZTolerance).getValue();
+//		rtTolerance = parameters.getParameter(RTAdjusterParameters.RTTolerance).getValue();
+//		minHeight = parameters.getParameter(RTAdjusterParameters.minHeight).getValue();
+		removeOriginal = parameters.getParameter(RTAdjusterParameters.autoRemove).getValue();
 
 	}
 
@@ -113,8 +107,7 @@ class RTNormalizerTask extends AbstractTask {
 		Vector<PeakListRow[]> goodStandards = new Vector<PeakListRow[]>();
 
 		// Iterate the first peaklist
-		standardIteration: for (PeakListRow candidate : originalPeakLists[0]
-				.getRows()) {
+		standardIteration: for (PeakListRow candidate : originalPeakLists[0].getRows()) {
 
 			// Cancel?
 			if (isCanceled()) {
@@ -216,8 +209,7 @@ class RTNormalizerTask extends AbstractTask {
 			}
 
 			// Add task description to peakList
-			normalizedPeakLists[i]
-					.addDescriptionOfAppliedTask(new SimplePeakListAppliedMethod(
+			normalizedPeakLists[i].addDescriptionOfAppliedTask(new SimplePeakListAppliedMethod(
 							"Retention time normalization", parameters));
 
 			// Remove the original peaklists if requested
@@ -259,15 +251,13 @@ class RTNormalizerTask extends AbstractTask {
 			}
 
 			// Normalize one row
-			PeakListRow normalizedRow = normalizeRow(originalRow, standards,
-					normalizedStdRTs);
+			PeakListRow normalizedRow = normalizeRow(originalRow, standards, normalizedStdRTs);
 
 			// Copy comment and identification
 			normalizedRow.setComment(originalRow.getComment());
 			for (PeakIdentity ident : originalRow.getPeakIdentities())
 				normalizedRow.addPeakIdentity(ident, false);
-			normalizedRow.setPreferredPeakIdentity(originalRow
-					.getPreferredPeakIdentity());
+			normalizedRow.setPreferredPeakIdentity(originalRow.getPreferredPeakIdentity());
 
 			// Add the new row to normalized peak list
 			normalizedPeakList.addRow(normalizedRow);
@@ -309,16 +299,14 @@ class RTNormalizerTask extends AbstractTask {
 			// If this standard peak is before our originalRow
 			if (standards[stdIndex].getAverageRT() < originalRow.getAverageRT()) {
 				if ((prevStdIndex == -1)
-						|| (standards[stdIndex].getAverageRT() > standards[prevStdIndex]
-								.getAverageRT()))
+						|| (standards[stdIndex].getAverageRT() > standards[prevStdIndex].getAverageRT()))
 					prevStdIndex = stdIndex;
 			}
 
 			// If this standard peak is after our originalRow
 			if (standards[stdIndex].getAverageRT() > originalRow.getAverageRT()) {
 				if ((nextStdIndex == -1)
-						|| (standards[stdIndex].getAverageRT() < standards[nextStdIndex]
-								.getAverageRT()))
+						|| (standards[stdIndex].getAverageRT() < standards[nextStdIndex].getAverageRT()))
 					nextStdIndex = stdIndex;
 			}
 
@@ -334,10 +322,8 @@ class RTNormalizerTask extends AbstractTask {
 			if (prevStdIndex == nextStdIndex) {
 				normalizedRT = normalizedStdRTs[prevStdIndex];
 			} else {
-				double weight = (originalRow.getAverageRT() - standards[prevStdIndex]
-						.getAverageRT())
-						/ (standards[nextStdIndex].getAverageRT() - standards[prevStdIndex]
-								.getAverageRT());
+				double weight = (originalRow.getAverageRT() - standards[prevStdIndex].getAverageRT())
+						/ (standards[nextStdIndex].getAverageRT() - standards[prevStdIndex].getAverageRT());
 				normalizedRT = normalizedStdRTs[prevStdIndex]
 						+ (weight * (normalizedStdRTs[nextStdIndex] - normalizedStdRTs[prevStdIndex]));
 			}
@@ -346,8 +332,7 @@ class RTNormalizerTask extends AbstractTask {
 		for (RawDataFile file : originalRow.getRawDataFiles()) {
 			Feature originalPeak = originalRow.getPeak(file);
 			if (originalPeak != null) {
-				SimpleFeature normalizedPeak = new SimpleFeature(
-						originalPeak);
+				SimpleFeature normalizedPeak = new SimpleFeature(originalPeak);
 				PeakUtils.copyPeakProperties(originalPeak, normalizedPeak);
 				normalizedPeak.setRT(normalizedRT);
 				normalizedRow.addPeak(file, normalizedPeak);
